@@ -33,6 +33,8 @@ import {
   Radio,
   Sliders,
   ExternalLink,
+  FlaskConical,
+  LogOut,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +64,8 @@ import { toast } from "sonner";
 import WeatherForecast from "./WeatherForecast";
 import GrowthStagePanel from "./GrowthStagePanel";
 import WeatherDetailsChart from "./WeatherDetailsChart";
+import ControlsAndAnalytics from "./ControlsAndAnalytics";
+import NourishIQDashboard from "./nourishiq/NourishIQDashboard";
 import { useFirebase } from "@/hooks/useFirebase";
 import { GROWTH_STAGES, Stage, stageFromDays } from "@/lib/growthStages";
 
@@ -70,16 +74,20 @@ type Mode = "Auto" | "Manual";
 type NavSection =
   | "Dashboard"
   | "Environment"
-  | "Controls"
-  | "Analytics"
+  | "Controls & Analytics"
   | "Plant Growth"
+  | "NourishIQ"
   | "Alerts"
   | "Weather"
   | "Settings";
 
 const CROPS = ["Tomato", "Lettuce", "Strawberry", "Basil", "Pepper"];
 
-export default function Dashboard() {
+interface DashboardProps {
+  onLogout?: () => void;
+}
+
+export default function Dashboard({ onLogout }: DashboardProps = {}) {
   // ── Firebase real-time state ────────────────────────────────────
   const {
     temp,
@@ -270,9 +278,9 @@ export default function Dashboard() {
   const NAV_ITEMS: { label: NavSection; icon: typeof LayoutDashboard; badge?: number }[] = [
     { label: "Dashboard", icon: LayoutDashboard },
     { label: "Environment", icon: ThermometerSun },
-    { label: "Controls", icon: SlidersHorizontal },
-    { label: "Analytics", icon: BarChart3 },
+    { label: "Controls & Analytics", icon: SlidersHorizontal },
     { label: "Plant Growth", icon: Sprout },
+    { label: "NourishIQ", icon: FlaskConical },
     { label: "Alerts", icon: AlertTriangle, badge: alerts.length },
     { label: "Weather", icon: CloudSun },
     { label: "Settings", icon: Settings },
@@ -387,31 +395,56 @@ export default function Dashboard() {
         </nav>
 
         {/* Footer info in sidebar */}
-        <div className="p-3.5 shrink-0 border-t border-white/10">
+        <div className="p-3.5 shrink-0 border-t border-white/10 space-y-2">
           {!isSidebarCollapsed ? (
-            <div className="flex items-center justify-between text-xs text-white/70">
-              <div>
-                <p className="font-semibold text-white">Commercial Unit A</p>
-                <p className="text-[10px] text-white/50">ESP32 Firmware v2.4</p>
+            <>
+              <div className="flex items-center justify-between text-xs text-white/70">
+                <div>
+                  <p className="font-semibold text-white">Commercial Unit A</p>
+                  <p className="text-[10px] text-white/50">ESP32 Firmware v2.4</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  title="Collapse sidebar"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4 rotate-180" />
+                </button>
               </div>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  title="Sign out of QuantumGrow"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white/75 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="space-y-1">
               <button
                 type="button"
-                onClick={() => setIsSidebarCollapsed(true)}
-                title="Collapse sidebar"
-                className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                onClick={() => setIsSidebarCollapsed(false)}
+                title="Expand sidebar"
+                className="flex h-8 w-full items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
               >
-                <ChevronRight className="h-4 w-4 rotate-180" />
+                <ChevronRight className="h-4 w-4" />
               </button>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  title="Sign Out"
+                  className="flex h-8 w-full items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsSidebarCollapsed(false)}
-              title="Expand sidebar"
-              className="flex h-8 w-full items-center justify-center rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
           )}
         </div>
       </aside>
@@ -474,6 +507,19 @@ export default function Dashboard() {
                       </button>
                     );
                   })}
+                  {onLogout && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
@@ -489,6 +535,8 @@ export default function Dashboard() {
               <h2 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
                 {activeSection === "Dashboard"
                   ? "Real-Time Telemetry & Industrial Control"
+                  : activeSection === "Controls & Analytics"
+                  ? "Controls & Analytics"
                   : `${activeSection} Management`}
               </h2>
             </div>
@@ -816,9 +864,62 @@ export default function Dashboard() {
 
 
           {/* ────────────────────────────────────────────────────────
+              SECTION: UNIFIED CONTROLS & ANALYTICS
+          ──────────────────────────────────────────────────────── */}
+          {activeSection === "Controls & Analytics" && (
+            <ControlsAndAnalytics
+              temp={temp}
+              humidity={humidity}
+              lux={lux}
+              hoursLit={hoursLit}
+              soilMoisture={soilMoisture}
+              mq2={mq2}
+              soil1={soil1}
+              soil2={soil2}
+              lightRaw={lightRaw}
+              ledBrightness={ledBrightness}
+              solarVoltage={solarVoltage}
+              lastUpdated={lastUpdated}
+              mode={mode}
+              ledOn={ledOn}
+              ledIntensity={ledIntensity}
+              mistOn={mistOn}
+              connected={connected}
+              loading={loading}
+              setMode={setMode}
+              setLedOn={setLedOn}
+              setLedIntensity={setLedIntensity}
+              setMistOn={setMistOn}
+              stage={stage}
+              crop={crop}
+              ledHoursToday={ledHoursToday}
+              targetDLI={targetDLI}
+              naturalDLI={naturalDLI}
+              ledDLI={ledDLI}
+              achievedDLI={achievedDLI}
+              dliPct={dliPct}
+              dliStatus={dliStatus}
+              photoperiodTarget={photoperiodTarget}
+              remainingHours={remainingHours}
+              solarShare={solarShare}
+              energySavedPct={energySavedPct}
+            />
+          )}
+
+          {/* ────────────────────────────────────────────────────────
+              SECTION: NOURISHIQ
+          ──────────────────────────────────────────────────────── */}
+          {activeSection === "NourishIQ" && (
+            <NourishIQDashboard
+              currentTemp={temp}
+              currentHumidity={humidity}
+            />
+          )}
+
+          {/* ────────────────────────────────────────────────────────
               SECTION: INDUSTRIAL IOT CONTROLS
           ──────────────────────────────────────────────────────── */}
-          {(activeSection === "Dashboard" || activeSection === "Controls") && (
+          {activeSection === "Dashboard" && (
             <div className="glass-card rounded-2xl p-6 border border-border shadow-xs">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-border/60">
                 <div className="flex items-center gap-3">
@@ -868,7 +969,7 @@ export default function Dashboard() {
                       </span>
                       <div>
                         <h4 className="text-sm font-bold text-foreground">
-                          Grow Light System (4-Channel)
+                          Grow Light System
                         </h4>
                         <p className="text-xs text-muted-foreground">
                           PWM Intensity: {ledOn ? `${ledIntensity}% (${Math.round((ledIntensity / 100) * 255)} / 255 PWM)` : "Standby (0 PWM)"}
@@ -990,7 +1091,7 @@ export default function Dashboard() {
           {/* ────────────────────────────────────────────────────────
               SECTION: ANALYTICS & DLI EFFICIENCY
           ──────────────────────────────────────────────────────── */}
-          {(activeSection === "Dashboard" || activeSection === "Analytics") && (
+          {activeSection === "Dashboard" && (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Daily Light Integral (DLI) Progress */}
               <div className="glass-card rounded-2xl p-6 border border-border shadow-xs lg:col-span-2">
@@ -1301,6 +1402,31 @@ export default function Dashboard() {
                 smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app
               </p>
             </div>
+
+            {/* Session Management */}
+            {onLogout && (
+              <div className="rounded-xl border border-border bg-secondary/40 p-3.5 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-foreground text-xs uppercase tracking-wider">
+                    Operator Session
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Logged in as authorized agricultural operator
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSettingsOpen(false);
+                    onLogout();
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive text-xs font-semibold hover:text-white transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
