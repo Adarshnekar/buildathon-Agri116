@@ -1,5 +1,5 @@
 /**
- * useFirebase — Real-time Firebase hook for Grow Guardian
+ * useFirebase — Real-time Firebase hook for Grow Guardian & QuantumGrow
  *
  * READS  (Firebase → UI):
  *   sensors/temperature   number  °C  (or computed from temp1, temp2)
@@ -45,7 +45,7 @@ export interface FirebaseState {
   mistOn: boolean;
 
   // ── Status ────────────────────────────────────────────────────
-  connected: boolean;   // true once at least one Firebase value arrived
+  connected: boolean;   // true when WebSocket is connected and synced
   loading: boolean;     // true during initial fetch
 
   // ── Write helpers ─────────────────────────────────────────────
@@ -74,6 +74,26 @@ const DEFAULTS = {
   mistOn: false,
 };
 
+// Safe parsing helpers for robust hardware deserialization
+function parseNum(val: unknown): number | null {
+  if (typeof val === "number" && !isNaN(val)) return val;
+  if (typeof val === "string") {
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
+function parseBool(val: unknown): boolean | null {
+  if (typeof val === "boolean") return val;
+  if (typeof val === "string") {
+    if (val.toLowerCase() === "true" || val === "1") return true;
+    if (val.toLowerCase() === "false" || val === "0") return false;
+  }
+  if (typeof val === "number") return val !== 0;
+  return null;
+}
+
 export function useFirebase(): FirebaseState {
   const [temp, setTemp] = useState(DEFAULTS.temp);
   const [humidity, setHumidity] = useState(DEFAULTS.humidity);
@@ -101,106 +121,150 @@ export function useFirebase(): FirebaseState {
     arrivedCount.current += 1;
     setLoading(false);
     setConnected(true);
-    setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    setLastUpdated(
+      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    );
   }
 
   useEffect(() => {
-    // ── Primary unified sensors listener ──────────────────────────
-    const sensorsRef = ref(db, "sensors");
-    const unsubSensors = onValue(sensorsRef, (snap) => {
-      const data = snap.val();
-      if (!data) return;
-
-      // Temperature
-      if (typeof data.temperature === "number") {
-        setTemp(Number(data.temperature.toFixed(1)));
-      } else if (typeof data.temp1 === "number" || typeof data.temp2 === "number") {
-        const t1 = typeof data.temp1 === "number" ? data.temp1 : data.temp2;
-        const t2 = typeof data.temp2 === "number" ? data.temp2 : data.temp1;
-        setTemp(Number(((t1 + t2) / 2).toFixed(1)));
+    // ── 1. Firebase Native Connection State Listener ──────────────
+    const connectedRef = ref(db, ".info/connected");
+    const unsubConnected = onValue(connectedRef, (snap) => {
+      const isOnline = !!snap.val();
+      if (isOnline) {
+        setConnected(true);
+        setLoading(false);
       }
-
-      // Humidity
-      if (typeof data.humidity === "number") {
-        setHumidity(Number(data.humidity.toFixed(1)));
-      } else if (typeof data.hum1 === "number" || typeof data.hum2 === "number") {
-        const h1 = typeof data.hum1 === "number" ? data.hum1 : data.hum2;
-        const h2 = typeof data.hum2 === "number" ? data.hum2 : data.hum1;
-        setHumidity(Number(((h1 + h2) / 2).toFixed(1)));
-      }
-
-      // Lux & Light
-      if (typeof data.lux === "number") {
-        setLux(Math.round(data.lux));
-      } else if (typeof data.ldr1 === "number" || typeof data.ldr2 === "number") {
-        const l1 = typeof data.ldr1 === "number" ? data.ldr1 : 2000;
-        const l2 = typeof data.ldr2 === "number" ? data.ldr2 : 2000;
-        const avgLdr = (l1 + l2) / 2;
-        // LDR calibration map: 300 (bright) -> ~45000 lux, 3500 (dark) -> ~150 lux
-        const calculatedLux = Math.round(Math.max(100, Math.min(60000, 45000 - ((avgLdr - 300) / 3200) * 44850)));
-        setLux(calculatedLux);
-      }
-
-      if (typeof data.lightRaw === "number") {
-        setLightRaw(Math.round(data.lightRaw));
-      } else if (typeof data.ldr1 === "number" || typeof data.ldr2 === "number") {
-        const l1 = typeof data.ldr1 === "number" ? data.ldr1 : 0;
-        const l2 = typeof data.ldr2 === "number" ? data.ldr2 : 0;
-        setLightRaw(Math.round((l1 + l2) / 2));
-      }
-
-      // Hours Lit
-      if (typeof data.hoursLit === "number") {
-        setHoursLit(Number(data.hoursLit.toFixed(2)));
-      }
-
-      // Soil Moisture
-      if (typeof data.soilMoisture === "number") {
-        setSoilMoisture(Math.round(data.soilMoisture));
-      } else if (typeof data.soil1Percent === "number") {
-        setSoilMoisture(Math.round(data.soil1Percent));
-      }
-
-      // MQ2 Gas Sensor
-      if (typeof data.mq2 === "number") {
-        setMq2(Math.round(data.mq2));
-      }
-
-      // Soil Probes
-      if (typeof data.soil1 === "number") {
-        setSoil1(Math.round(data.soil1));
-      } else if (typeof data.soil1Percent === "number") {
-        setSoil1(Math.round(data.soil1Percent));
-      }
-
-      if (typeof data.soil2 === "number") {
-        setSoil2(Math.round(data.soil2));
-      } else if (typeof data.soil2Wet === "boolean") {
-        setSoil2(data.soil2Wet ? 85 : 15);
-      }
-
-      // LED Brightness
-      if (typeof data.ledBrightness === "number") {
-        setLedBrightness(Math.round(data.ledBrightness));
-      } else if (typeof data.led12Percent === "number" || typeof data.led34Percent === "number") {
-        const b1 = typeof data.led12Percent === "number" ? data.led12Percent : 0;
-        const b2 = typeof data.led34Percent === "number" ? data.led34Percent : 0;
-        setLedBrightness(Math.round((b1 + b2) / 2));
-      }
-
-      // Solar Voltage
-      if (typeof data.solarVoltage === "number") {
-        setSolarVoltage(Number(data.solarVoltage.toFixed(1)));
-      }
-
-      markArrived();
     });
 
-    // ── Control listeners (sync UI ↔ Firebase) ────────────────────
-    const modeRef      = ref(db, "controls/mode");
-    const ledOnRef     = ref(db, "controls/ledOn");
-    const ledIntRef    = ref(db, "controls/ledIntensity");
-    const mistOnRef    = ref(db, "controls/mistOn");
+    // ── 2. Primary Real-time Sensors Listener ──────────────────────
+    const sensorsRef = ref(db, "sensors");
+    const unsubSensors = onValue(
+      sensorsRef,
+      (snap) => {
+        const data = snap.val();
+        if (!data) return;
+
+        // Temperature (reads aggregate, or averages dual DHT sensors)
+        const temperatureVal = parseNum(data.temperature);
+        const temp1Val = parseNum(data.temp1);
+        const temp2Val = parseNum(data.temp2);
+
+        if (temperatureVal !== null) {
+          setTemp(Number(temperatureVal.toFixed(1)));
+        } else if (temp1Val !== null || temp2Val !== null) {
+          const t1 = temp1Val ?? temp2Val!;
+          const t2 = temp2Val ?? temp1Val!;
+          setTemp(Number(((t1 + t2) / 2).toFixed(1)));
+        }
+
+        // Humidity (reads aggregate, or averages dual DHT sensors)
+        const humidityVal = parseNum(data.humidity);
+        const hum1Val = parseNum(data.hum1);
+        const hum2Val = parseNum(data.hum2);
+
+        if (humidityVal !== null) {
+          setHumidity(Number(humidityVal.toFixed(1)));
+        } else if (hum1Val !== null || hum2Val !== null) {
+          const h1 = hum1Val ?? hum2Val!;
+          const h2 = hum2Val ?? hum1Val!;
+          setHumidity(Number(((h1 + h2) / 2).toFixed(1)));
+        }
+
+        // Lux & Light Calibration
+        const luxVal = parseNum(data.lux);
+        const ldr1Val = parseNum(data.ldr1);
+        const ldr2Val = parseNum(data.ldr2);
+
+        if (luxVal !== null) {
+          setLux(Math.round(luxVal));
+        } else if (ldr1Val !== null || ldr2Val !== null) {
+          const l1 = ldr1Val ?? 2000;
+          const l2 = ldr2Val ?? 2000;
+          const avgLdr = (l1 + l2) / 2;
+          const calculatedLux = Math.round(
+            Math.max(100, Math.min(60000, 45000 - ((avgLdr - 300) / 3200) * 44850))
+          );
+          setLux(calculatedLux);
+        }
+
+        // Raw Light
+        const lightRawVal = parseNum(data.lightRaw);
+        if (lightRawVal !== null) {
+          setLightRaw(Math.round(lightRawVal));
+        } else if (ldr1Val !== null || ldr2Val !== null) {
+          const l1 = ldr1Val ?? 0;
+          const l2 = ldr2Val ?? 0;
+          setLightRaw(Math.round((l1 + l2) / 2));
+        }
+
+        // Hours Lit
+        const hoursLitVal = parseNum(data.hoursLit);
+        if (hoursLitVal !== null) {
+          setHoursLit(Number(hoursLitVal.toFixed(2)));
+        }
+
+        // Soil Moisture (%)
+        const soilMoistureVal = parseNum(data.soilMoisture);
+        const soil1PercentVal = parseNum(data.soil1Percent);
+        if (soilMoistureVal !== null) {
+          setSoilMoisture(Math.round(soilMoistureVal));
+        } else if (soil1PercentVal !== null) {
+          setSoilMoisture(Math.round(soil1PercentVal));
+        }
+
+        // MQ2 Gas Sensor
+        const mq2Val = parseNum(data.mq2);
+        if (mq2Val !== null) {
+          setMq2(Math.round(mq2Val));
+        }
+
+        // Soil Probes
+        const soil1Val = parseNum(data.soil1);
+        if (soil1Val !== null) {
+          setSoil1(Math.round(soil1Val));
+        } else if (soil1PercentVal !== null) {
+          setSoil1(Math.round(soil1PercentVal));
+        }
+
+        const soil2Val = parseNum(data.soil2);
+        const soil2WetVal = parseBool(data.soil2Wet);
+        if (soil2Val !== null) {
+          setSoil2(Math.round(soil2Val));
+        } else if (soil2WetVal !== null) {
+          setSoil2(soil2WetVal ? 85 : 15);
+        }
+
+        // LED Brightness
+        const ledBrightnessVal = parseNum(data.ledBrightness);
+        const led12Val = parseNum(data.led12Percent);
+        const led34Val = parseNum(data.led34Percent);
+        if (ledBrightnessVal !== null) {
+          setLedBrightness(Math.round(ledBrightnessVal));
+        } else if (led12Val !== null || led34Val !== null) {
+          const b1 = led12Val ?? 0;
+          const b2 = led34Val ?? 0;
+          setLedBrightness(Math.round((b1 + b2) / 2));
+        }
+
+        // Solar Voltage
+        const solarVal = parseNum(data.solarVoltage);
+        if (solarVal !== null) {
+          setSolarVoltage(Number(solarVal.toFixed(1)));
+        }
+
+        markArrived();
+      },
+      (error) => {
+        console.error("Firebase sensors onValue error:", error);
+      }
+    );
+
+    // ── 3. Real-time Control Listeners ─────────────────────────────
+    const modeRef   = ref(db, "controls/mode");
+    const ledOnRef  = ref(db, "controls/ledOn");
+    const ledIntRef = ref(db, "controls/ledIntensity");
+    const mistOnRef = ref(db, "controls/mistOn");
 
     const unsubMode = onValue(modeRef, (snap) => {
       const v = snap.val();
@@ -209,25 +273,26 @@ export function useFirebase(): FirebaseState {
     });
 
     const unsubLedOn = onValue(ledOnRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "boolean") setLedOnState(v);
+      const v = parseBool(snap.val());
+      if (v !== null) setLedOnState(v);
       markArrived();
     });
 
     const unsubLedInt = onValue(ledIntRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setLedIntensityState(v);
+      const v = parseNum(snap.val());
+      if (v !== null) setLedIntensityState(Math.round(v));
       markArrived();
     });
 
     const unsubMist = onValue(mistOnRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "boolean") setMistOnState(v);
+      const v = parseBool(snap.val());
+      if (v !== null) setMistOnState(v);
       markArrived();
     });
 
     // Cleanup all listeners on unmount
     return () => {
+      unsubConnected();
       unsubSensors();
       unsubMode();
       unsubLedOn();
@@ -249,44 +314,44 @@ export function useFirebase(): FirebaseState {
 
   const setMode = async (m: Mode) => {
     const prev = mode;
-    setModeState(m); // optimistic local update
+    setModeState(m); // optimistic update
     try {
       await writeControl("controls/mode", m);
     } catch (err) {
-      setModeState(prev); // revert on failure
+      setModeState(prev);
       throw err;
     }
   };
 
   const setLedOn = async (on: boolean) => {
     const prev = ledOn;
-    setLedOnState(on); // optimistic
+    setLedOnState(on);
     try {
       await writeControl("controls/ledOn", on);
     } catch (err) {
-      setLedOnState(prev); // revert on failure
+      setLedOnState(prev);
       throw err;
     }
   };
 
   const setLedIntensity = async (pct: number) => {
     const prev = ledIntensity;
-    setLedIntensityState(pct); // optimistic
+    setLedIntensityState(pct);
     try {
       await writeControl("controls/ledIntensity", pct);
     } catch (err) {
-      setLedIntensityState(prev); // revert on failure
+      setLedIntensityState(prev);
       throw err;
     }
   };
 
   const setMistOn = async (on: boolean) => {
     const prev = mistOn;
-    setMistOnState(on); // optimistic
+    setMistOnState(on);
     try {
       await writeControl("controls/mistOn", on);
     } catch (err) {
-      setMistOnState(prev); // revert on failure
+      setMistOnState(prev);
       throw err;
     }
   };
