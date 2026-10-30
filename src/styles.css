@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sun: var(--sun);
+  --color-leaf: var(--leaf);
+  --color-water: var(--water);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-sage: var(--sage);
+  --color-light-sage: var(--light-sage);
+  --color-cream: var(--cream);
+  --color-forest: var(--forest);
+  --color-dark-green: var(--dark-green);
+}
+
+:root {
+  --radius: 1.125rem;
+
+  /* Premium AgriTech & Smart Farming Palette */
+  --forest: #123C2A;
+  --dark-green: #0B2B1E;
+  --emerald: #2F6B4F;
+  --sage: #A8C5A2;
+  --light-sage: #DCE9D8;
+  --cream: #F5F3EA;
+  --warm-white: #FCFCF8;
+
+  --background: #FCFCF8;
+  --foreground: #17221B;
+
+  --card: #FFFFFF;
+  --card-foreground: #17221B;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #17221B;
+
+  /* Primary Deep Forest Green */
+  --primary: #123C2A;
+  --primary-foreground: #FCFCF8;
+
+  --secondary: #F5F3EA;
+  --secondary-foreground: #17221B;
+
+  --muted: #EFECE1;
+  --muted-foreground: #66756A;
+
+  --accent: #DCE9D8;
+  --accent-foreground: #123C2A;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #E8E4D5;
+  --input: #E8E4D5;
+  --ring: #2F6B4F;
+
+  /* Status Tokens */
+  --sun: #D97706;
+  --leaf: #2F6B4F;
+  --water: #2563EB;
+  --warning: #D97706;
+  --success: #2F6B4F;
+
+  --shadow-soft: 0 2px 10px -2px rgba(18, 60, 42, 0.05), 0 1px 3px 0 rgba(18, 60, 42, 0.03);
+  --shadow-hover: 0 10px 28px -4px rgba(18, 60, 42, 0.10), 0 2px 8px -2px rgba(18, 60, 42, 0.04);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--color-foreground);
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    background-image: 
+      radial-gradient(rgba(47, 107, 79, 0.04) 1px, transparent 1px),
+      radial-gradient(rgba(168, 197, 162, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px, 56px 56px;
+    background-position: 0 0, 14px 14px;
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-soft);
+    border-radius: 1.25rem;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+  }
+  .glass-card:hover {
+    box-shadow: var(--shadow-hover);
+    border-color: rgba(47, 107, 79, 0.25);
+  }
+
+  .agri-card-inner {
+    background: linear-gradient(135deg, #FFFFFF 0%, #FAFAF6 100%);
+    border: 1px solid #ECE7D9;
+    border-radius: 1rem;
+    transition: all 0.2s ease;
+  }
+  .agri-card-inner:hover {
+    border-color: rgba(47, 107, 79, 0.3);
+    background: linear-gradient(135deg, #FFFFFF 0%, #F5F7F3 100%);
+  }
+
+  .text-sun { color: var(--color-sun); }
+  .text-leaf { color: var(--color-leaf); }
+  .text-water { color: var(--color-water); }
+  .text-warning { color: var(--color-warning); }
+
+  .bg-sun-soft { background-color: rgba(217, 119, 6, 0.10); }
+  .bg-leaf-soft { background-color: rgba(47, 107, 79, 0.10); }
+  .bg-water-soft { background-color: rgba(37, 99, 235, 0.10); }
+  .bg-warning-soft { background-color: rgba(217, 119, 6, 0.10); }
+  .bg-primary-soft { background-color: rgba(18, 60, 42, 0.08); }
+  .bg-sage-soft { background-color: rgba(168, 197, 162, 0.20); }
+
+  .sidebar-theme {
+    background: linear-gradient(180deg, #0B2B1E 0%, #123C2A 100%);
+    color: #F5F3EA;
+  }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(47, 107, 79, 0.45); }
+    70% { box-shadow: 0 0 0 8px rgba(47, 107, 79, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(47, 107, 79, 0); }
+  }
+  .pulse-ring { animation: pulse-ring 2.4s infinite; }
+}
