@@ -5,15 +5,22 @@ import {
   Sprout,
   Headphones,
   Cpu,
-  Activity,
   ArrowRight,
-  TrendingUp,
   Sparkles,
   ShieldCheck,
   Check,
+  KeyRound,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { auth, googleProvider } from "@/lib/firebase";
+import { FirebaseError } from "firebase/app";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 
 interface LoginPageProps {
   onLoginSuccess: (email?: string) => void;
@@ -72,54 +79,165 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   const slide = FEATURE_SLIDES[activeSlide];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    const userEmail = email.trim() || "operator@quantumgrow.io";
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(
-        mode === "signin"
-          ? "Signed in successfully"
-          : "Account created successfully",
-        {
-          description: `Logged in as ${userEmail}. Connected to Smart Polyhouse Node #01.`,
-        }
-      );
-      onLoginSuccess(userEmail);
-    }, 450);
-  };
-
-  const handleQuickLogin = (provider: "google" | "facebook" | "demo") => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      let providerEmail = "operator@quantumgrow.io";
-      let title = "Signed in with Quick Access";
-
-      if (provider === "google") {
-        providerEmail = "google.operator@quantumgrow.io";
-        title = "Signed in with Google";
-      } else if (provider === "facebook") {
-        providerEmail = "fb.operator@quantumgrow.io";
-        title = "Signed in with Facebook";
-      }
-
-      toast.success(title, {
-        description: `Welcome to QuantumGrow Smart Polyhouse. Active Node: #01.`,
-      });
-      onLoginSuccess(providerEmail);
-    }, 350);
-  };
-
-  const handleForgotPassword = () => {
-    toast.info("Password Reset Requested", {
-      description: email.trim()
-        ? `Instructions have been sent to ${email.trim()}.`
-        : "Please enter your email address to receive reset instructions.",
+  const fillPolyhouseCredentials = () => {
+    setEmail("polyhouse299@gmail.com");
+    setPassword("Polyhouse@123");
+    toast.info("Node #01 Credentials Loaded", {
+      description: "polyhouse299@gmail.com filled. Click 'Sign in' to connect.",
     });
+  };
+
+  const getFriendlyAuthError = (err: unknown): string => {
+    if (err instanceof FirebaseError) {
+      switch (err.code) {
+        case "auth/invalid-credential":
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          return "Invalid email or password. Please verify credentials or create an account.";
+        case "auth/email-already-in-use":
+          return "This email is already registered. Please sign in instead.";
+        case "auth/weak-password":
+          return "Password should be at least 6 characters long.";
+        case "auth/invalid-email":
+          return "Please enter a valid email address.";
+        case "auth/too-many-requests":
+          return "Too many failed login attempts. Please reset password or try again later.";
+        case "auth/network-request-failed":
+          return "Network error. Check your internet connection.";
+        case "auth/popup-closed-by-user":
+          return "Sign-in popup was closed before completion.";
+        case "auth/operation-not-allowed":
+          return "Authentication provider not enabled in Firebase Console.";
+        default:
+          return err.message.replace("Firebase: ", "");
+      }
+    }
+    return "Authentication failed. Please try again.";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
+      toast.error("Email required", { description: "Please enter your email address." });
+      return;
+    }
+    if (!password) {
+      toast.error("Password required", { description: "Please enter your password." });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (mode === "signin") {
+        const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        const signedInEmail = userCredential.user.email || cleanEmail;
+        toast.success("Signed in successfully", {
+          description: `Logged in as ${signedInEmail}. Connected to Smart Polyhouse Node #01.`,
+        });
+        onLoginSuccess(signedInEmail);
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        const createdEmail = userCredential.user.email || cleanEmail;
+        toast.success("Account created successfully", {
+          description: `Welcome ${createdEmail}! Connected to Smart Polyhouse Node #01.`,
+        });
+        onLoginSuccess(createdEmail);
+      }
+    } catch (err: unknown) {
+      console.error("Auth error:", err);
+      toast.error(mode === "signin" ? "Sign In Failed" : "Account Creation Failed", {
+        description: getFriendlyAuthError(err),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const googleEmail = result.user.email || "google.operator@quantumgrow.io";
+      toast.success("Signed in with Google", {
+        description: `Welcome ${googleEmail}. Connected to Smart Polyhouse Node #01.`,
+      });
+      onLoginSuccess(googleEmail);
+    } catch (err: unknown) {
+      console.error("Google Auth error:", err);
+      if (err instanceof FirebaseError && err.code === "auth/popup-closed-by-user") {
+        setIsSubmitting(false);
+        return;
+      }
+      toast.error("Google Sign-In Failed", {
+        description: getFriendlyAuthError(err),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickLogin = async (provider: "google" | "facebook" | "demo") => {
+    if (provider === "google") {
+      await handleGoogleLogin();
+      return;
+    }
+
+    if (provider === "facebook") {
+      toast.info("Facebook Login", {
+        description: "Facebook OAuth requires configuration in the Firebase Console. Use Email or Google to sign in.",
+      });
+      return;
+    }
+
+    // Demo / Quick Operator Login
+    setIsSubmitting(true);
+    try {
+      // Attempt logging in with the provisioned hardware operator account
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        "polyhouse299@gmail.com",
+        "Polyhouse@123"
+      );
+      const email = userCredential.user.email || "polyhouse299@gmail.com";
+      toast.success("Node #01 Operator Session Active", {
+        description: `Connected with verified hardware node account: ${email}`,
+      });
+      onLoginSuccess(email);
+    } catch {
+      // Fallback for offline demo mode
+      const fallbackEmail = "operator@quantumgrow.io";
+      toast.success("Signed in with Demo Operator", {
+        description: `Welcome to QuantumGrow Smart Polyhouse. Active Node: #01 (Offline fallback).`,
+      });
+      onLoginSuccess(fallbackEmail);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      toast.error("Email required", {
+        description: "Please enter your email in the field above to receive password reset instructions.",
+      });
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      toast.success("Password Reset Email Sent", {
+        description: `Instructions have been sent to ${cleanEmail}. Check your inbox or spam folder.`,
+      });
+    } catch (err: unknown) {
+      console.error("Password reset error:", err);
+      toast.error("Password Reset Failed", {
+        description: getFriendlyAuthError(err),
+      });
+    }
   };
 
   return (
@@ -177,8 +295,18 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </p>
             </div>
 
+            {/* Quick Fill Node Credentials Hint */}
+            <button
+              type="button"
+              onClick={fillPolyhouseCredentials}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#2F6B4F] hover:text-[#123C2A] bg-[#2F6B4F]/10 hover:bg-[#2F6B4F]/15 px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              <span>Autofill Polyhouse Node #01 Credentials</span>
+            </button>
+
             {/* Form */}
-            <form onSubmit={handleSubmit} className="mt-7 sm:mt-8 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               {/* Email */}
               <div>
                 <label
@@ -192,7 +320,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@gmail.com"
+                  placeholder="polyhouse299@gmail.com"
+                  autoComplete="email"
                   className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
                 />
               </div>
@@ -212,6 +341,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
                     className="w-full h-11 px-3.5 pr-11 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
                   />
                   <button
@@ -261,10 +391,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Authenticating...
+                    Connecting to Firebase...
                   </span>
                 ) : (
-                  <span>{mode === "signin" ? "Sign in" : "Create Account"}</span>
+                  <span>{mode === "signin" ? "Sign in with Firebase" : "Create Account"}</span>
                 )}
               </button>
             </form>
@@ -283,7 +413,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="button"
                 onClick={() => handleQuickLogin("google")}
-                className="w-full h-10 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-3 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                disabled={isSubmitting}
+                className="w-full h-10 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-3 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.04)] disabled:opacity-60"
               >
                 {/* Official Google 'G' icon */}
                 <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
@@ -311,7 +442,8 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="button"
                 onClick={() => handleQuickLogin("facebook")}
-                className="w-full h-10 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-3 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                disabled={isSubmitting}
+                className="w-full h-10 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-3 cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.04)] disabled:opacity-60"
               >
                 {/* Official Facebook 'f' icon */}
                 <svg className="h-4 w-4 shrink-0" fill="#1877F2" viewBox="0 0 24 24">
@@ -326,14 +458,15 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           <div className="pt-6 mt-4 border-t border-neutral-100 flex items-center justify-between text-xs text-neutral-500">
             <span className="flex items-center gap-1.5 text-neutral-400">
               <ShieldCheck className="h-3.5 w-3.5 text-[#2F6B4F]" />
-              Offline Mock Auth
+              Firebase Auth Node #01
             </span>
             <button
               type="button"
               onClick={() => handleQuickLogin("demo")}
-              className="font-semibold text-[#123C2A] hover:underline flex items-center gap-1 cursor-pointer"
+              disabled={isSubmitting}
+              className="font-semibold text-[#123C2A] hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-60"
             >
-              Demo Operator Login
+              One-Click Node #01 Operator Login
               <ArrowRight className="h-3 w-3" />
             </button>
           </div>
@@ -395,7 +528,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </button>
               </div>
 
-              {/* Floating Dark IoT Controller Mock Card (Overlapping like the mockup card) */}
+              {/* Floating Dark IoT Controller Mock Card */}
               <div className="hidden sm:block absolute -right-6 -bottom-8 w-44 rounded-xl bg-gradient-to-br from-[#1B4D36] to-[#0D281C] p-3 text-white shadow-2xl border border-white/20 transform rotate-2 hover:rotate-0 transition-transform duration-300">
                 <div className="flex items-center justify-between text-[9px] text-white/70">
                   <span className="flex items-center gap-1 font-mono font-semibold">
@@ -436,7 +569,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               {slide.sectionDesc}
             </p>
 
-            {/* Pagination Dots (Matching ● ○ ○ from mockup) */}
+            {/* Pagination Dots */}
             <div className="flex items-center justify-center gap-2 mt-6">
               {FEATURE_SLIDES.map((_, idx) => (
                 <button
@@ -459,4 +592,3 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     </div>
   );
 }
-
