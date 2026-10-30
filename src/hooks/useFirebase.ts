@@ -241,27 +241,52 @@ export function useFirebase(): FirebaseState {
     } catch (err) {
       console.error(`Firebase write failed [${path}]:`, err);
       toast.error("Could not sync with Firebase. Check your connection.");
+      throw err;
     }
   }
 
   const setMode = async (m: Mode) => {
+    const prev = mode;
     setModeState(m); // optimistic local update
-    await writeControl("controls/mode", m);
+    try {
+      await writeControl("controls/mode", m);
+    } catch (err) {
+      setModeState(prev); // revert on failure
+      throw err;
+    }
   };
 
   const setLedOn = async (on: boolean) => {
+    const prev = ledOn;
     setLedOnState(on); // optimistic
-    await writeControl("controls/ledOn", on);
+    try {
+      await writeControl("controls/ledOn", on);
+    } catch (err) {
+      setLedOnState(prev); // revert on failure
+      throw err;
+    }
   };
 
   const setLedIntensity = async (pct: number) => {
+    const prev = ledIntensity;
     setLedIntensityState(pct); // optimistic
-    await writeControl("controls/ledIntensity", pct);
+    try {
+      await writeControl("controls/ledIntensity", pct);
+    } catch (err) {
+      setLedIntensityState(prev); // revert on failure
+      throw err;
+    }
   };
 
   const setMistOn = async (on: boolean) => {
+    const prev = mistOn;
     setMistOnState(on); // optimistic
-    await writeControl("controls/mistOn", on);
+    try {
+      await writeControl("controls/mistOn", on);
+    } catch (err) {
+      setMistOnState(prev); // revert on failure
+      throw err;
+    }
   };
 
   return {
