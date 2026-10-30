@@ -2,10 +2,12 @@
  * useFirebase — Real-time Firebase hook for Grow Guardian
  *
  * READS  (Firebase → UI):
- *   sensors/temperature   number  °C
- *   sensors/humidity      number  %
- *   sensors/lux           number  raw lux
+ *   sensors/temperature   number  °C  (or computed from temp1, temp2)
+ *   sensors/humidity      number  %   (or computed from hum1, hum2)
+ *   sensors/lux           number  raw lux (or computed from ldr1, ldr2)
  *   sensors/hoursLit      number  hours today
+ *   sensors/soilMoisture  number  %   (or soil1Percent)
+ *   sensors/mq2           number  raw ppm
  *
  * WRITES (UI → Firebase → Hardware):
  *   controls/mode         "Auto" | "Manual"
@@ -15,7 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { ref, onValue, set, off, DatabaseReference } from "firebase/database";
+import { ref, onValue, set } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
@@ -93,94 +95,104 @@ export function useFirebase(): FirebaseState {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Track how many sensor paths have returned at least once
   const arrivedCount = useRef(0);
 
   function markArrived() {
     arrivedCount.current += 1;
-    // Mark connected as soon as at least one real value is received from Firebase
     setLoading(false);
     setConnected(true);
     setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
   }
 
   useEffect(() => {
-    // ── Sensor listeners ──────────────────────────────────────────
-    const tempRef     = ref(db, "sensors/temperature");
-    const humRef      = ref(db, "sensors/humidity");
-    const luxRef      = ref(db, "sensors/lux");
-    const litRef      = ref(db, "sensors/hoursLit");
-    const soilRef     = ref(db, "sensors/soilMoisture");
-    const mq2Ref      = ref(db, "sensors/mq2");
-    const soil1Ref    = ref(db, "sensors/soil1");
-    const soil2Ref    = ref(db, "sensors/soil2");
-    const lightRawRef = ref(db, "sensors/lightRaw");
-    const ledBriRef   = ref(db, "sensors/ledBrightness");
-    const solarRef    = ref(db, "sensors/solarVoltage");
+    // ── Primary unified sensors listener ──────────────────────────
+    const sensorsRef = ref(db, "sensors");
+    const unsubSensors = onValue(sensorsRef, (snap) => {
+      const data = snap.val();
+      if (!data) return;
 
-    const unsubTemp = onValue(tempRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setTemp(v);
-      markArrived();
-    });
+      // Temperature
+      if (typeof data.temperature === "number") {
+        setTemp(Number(data.temperature.toFixed(1)));
+      } else if (typeof data.temp1 === "number" || typeof data.temp2 === "number") {
+        const t1 = typeof data.temp1 === "number" ? data.temp1 : data.temp2;
+        const t2 = typeof data.temp2 === "number" ? data.temp2 : data.temp1;
+        setTemp(Number(((t1 + t2) / 2).toFixed(1)));
+      }
 
-    const unsubHum = onValue(humRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setHumidity(v);
-      markArrived();
-    });
+      // Humidity
+      if (typeof data.humidity === "number") {
+        setHumidity(Number(data.humidity.toFixed(1)));
+      } else if (typeof data.hum1 === "number" || typeof data.hum2 === "number") {
+        const h1 = typeof data.hum1 === "number" ? data.hum1 : data.hum2;
+        const h2 = typeof data.hum2 === "number" ? data.hum2 : data.hum1;
+        setHumidity(Number(((h1 + h2) / 2).toFixed(1)));
+      }
 
-    const unsubLux = onValue(luxRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setLux(v);
-      markArrived();
-    });
+      // Lux & Light
+      if (typeof data.lux === "number") {
+        setLux(Math.round(data.lux));
+      } else if (typeof data.ldr1 === "number" || typeof data.ldr2 === "number") {
+        const l1 = typeof data.ldr1 === "number" ? data.ldr1 : 2000;
+        const l2 = typeof data.ldr2 === "number" ? data.ldr2 : 2000;
+        const avgLdr = (l1 + l2) / 2;
+        // LDR calibration map: 300 (bright) -> ~45000 lux, 3500 (dark) -> ~150 lux
+        const calculatedLux = Math.round(Math.max(100, Math.min(60000, 45000 - ((avgLdr - 300) / 3200) * 44850)));
+        setLux(calculatedLux);
+      }
 
-    const unsubLit = onValue(litRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setHoursLit(v);
-      markArrived();
-    });
+      if (typeof data.lightRaw === "number") {
+        setLightRaw(Math.round(data.lightRaw));
+      } else if (typeof data.ldr1 === "number" || typeof data.ldr2 === "number") {
+        const l1 = typeof data.ldr1 === "number" ? data.ldr1 : 0;
+        const l2 = typeof data.ldr2 === "number" ? data.ldr2 : 0;
+        setLightRaw(Math.round((l1 + l2) / 2));
+      }
 
-    const unsubSoil = onValue(soilRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setSoilMoisture(v);
-      markArrived();
-    });
+      // Hours Lit
+      if (typeof data.hoursLit === "number") {
+        setHoursLit(Number(data.hoursLit.toFixed(2)));
+      }
 
-    const unsubMq2 = onValue(mq2Ref, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setMq2(v);
-      markArrived();
-    });
+      // Soil Moisture
+      if (typeof data.soilMoisture === "number") {
+        setSoilMoisture(Math.round(data.soilMoisture));
+      } else if (typeof data.soil1Percent === "number") {
+        setSoilMoisture(Math.round(data.soil1Percent));
+      }
 
-    const unsubSoil1 = onValue(soil1Ref, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setSoil1(v);
-      markArrived();
-    });
+      // MQ2 Gas Sensor
+      if (typeof data.mq2 === "number") {
+        setMq2(Math.round(data.mq2));
+      }
 
-    const unsubSoil2 = onValue(soil2Ref, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setSoil2(v);
-      markArrived();
-    });
+      // Soil Probes
+      if (typeof data.soil1 === "number") {
+        setSoil1(Math.round(data.soil1));
+      } else if (typeof data.soil1Percent === "number") {
+        setSoil1(Math.round(data.soil1Percent));
+      }
 
-    const unsubLightRaw = onValue(lightRawRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setLightRaw(v);
-      markArrived();
-    });
+      if (typeof data.soil2 === "number") {
+        setSoil2(Math.round(data.soil2));
+      } else if (typeof data.soil2Wet === "boolean") {
+        setSoil2(data.soil2Wet ? 85 : 15);
+      }
 
-    const unsubSolar = onValue(solarRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setSolarVoltage(v);
-      markArrived();
-    });
+      // LED Brightness
+      if (typeof data.ledBrightness === "number") {
+        setLedBrightness(Math.round(data.ledBrightness));
+      } else if (typeof data.led12Percent === "number" || typeof data.led34Percent === "number") {
+        const b1 = typeof data.led12Percent === "number" ? data.led12Percent : 0;
+        const b2 = typeof data.led34Percent === "number" ? data.led34Percent : 0;
+        setLedBrightness(Math.round((b1 + b2) / 2));
+      }
 
-    const unsubLedBri = onValue(ledBriRef, (snap) => {
-      const v = snap.val();
-      if (v !== null && typeof v === "number") setLedBrightness(v);
+      // Solar Voltage
+      if (typeof data.solarVoltage === "number") {
+        setSolarVoltage(Number(data.solarVoltage.toFixed(1)));
+      }
+
       markArrived();
     });
 
@@ -216,17 +228,7 @@ export function useFirebase(): FirebaseState {
 
     // Cleanup all listeners on unmount
     return () => {
-      unsubTemp();
-      unsubHum();
-      unsubLux();
-      unsubLit();
-      unsubSoil();
-      unsubMq2();
-      unsubSoil1();
-      unsubSoil2();
-      unsubLightRaw();
-      unsubLedBri();
-      unsubSolar();
+      unsubSensors();
       unsubMode();
       unsubLedOn();
       unsubLedInt();

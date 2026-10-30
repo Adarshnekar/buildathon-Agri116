@@ -1,14 +1,31 @@
-# Firebase Integration — Grow Guardian
+# Firebase Integration — Smart Polyhouse (`smart-polyhouse-dc97b`)
+
+## Realtime Database URL
+`https://smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app`
 
 ## Database Structure
 
 ```
-smart-polyhouse-694e6 (root)
+smart-polyhouse-dc97b (root)
 ├── sensors/
-│   ├── temperature     ← number  (°C)    written by hardware
-│   ├── humidity        ← number  (%)     written by hardware
-│   ├── lux             ← number  (lux)   written by hardware
-│   └── hoursLit        ← number  (hours) written by hardware
+│   ├── temperature     ← number  (°C)    aggregated/average
+│   ├── humidity        ← number  (%)     aggregated/average
+│   ├── lux             ← number  (lux)   calibrated light
+│   ├── hoursLit        ← number  (hours) photoperiod hours
+│   ├── soilMoisture    ← number  (%)     soil moisture percentage
+│   ├── mq2             ← number  (ppm)   air/smoke sensor
+│   ├── temp1, temp2    ← number  (°C)    DHT1 & DHT2 sensors
+│   ├── hum1, hum2      ← number  (%)     DHT1 & DHT2 humidity
+│   ├── ldr1, ldr2      ← number  (ADC)   LDR sensor readings
+│   ├── soil1Percent    ← number  (%)     analog capacitive probe
+│   ├── soil2Wet        ← boolean         digital soil probe
+│   ├── led12Percent    ← number  (0-100) PWM channel 1 & 2
+│   ├── led34Percent    ← number  (0-100) PWM channel 3 & 4
+│   ├── pwm1, pwm2      ← number  (0-255) PWM brightness levels
+│   ├── lightRaw        ← number  (ADC)   average raw LDR
+│   └── ledBrightness   ← number  (0-100) average LED brightness
+├── actuators/
+│   └── humidifier      ← boolean         relay state
 └── controls/
     ├── mode            ← "Auto" | "Manual"   written by dashboard
     ├── ledOn           ← boolean             written by dashboard
@@ -16,90 +33,21 @@ smart-polyhouse-694e6 (root)
     └── mistOn          ← boolean             written by dashboard
 ```
 
-## Step 1 — Seed initial data
-
-Run once before opening the dashboard:
-
-```bash
-node scripts/seed-firebase.mjs
-```
-
-## Step 2 — Set database rules
-
-In Firebase Console → Realtime Database → Rules, paste:
+## Security Rules (Deployed via Firebase MCP)
 
 ```json
 {
   "rules": {
-    "sensors": {
-      ".read":  true,
-      ".write": true
-    },
-    "controls": {
-      ".read":  true,
-      ".write": true
-    }
+    ".read": true,
+    ".write": true
   }
 }
 ```
 
-## Step 3 — Hardware (ESP32 / Arduino) code pattern
+## Web Application Configuration
 
-Your microcontroller should:
-- **WRITE** sensor values to `sensors/` every few seconds
-- **READ** control values from `controls/` to operate relays
-
-### Arduino/ESP32 Firebase write example (using FirebaseESP32 library)
-
-```cpp
-#include <FirebaseESP32.h>
-
-#define FIREBASE_HOST "smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define FIREBASE_AUTH "YOUR_DATABASE_SECRET"  // From Firebase console → Project Settings → Service accounts
-
-FirebaseData fbdo;
-
-void loop() {
-  float temp     = readDHT22_Temp();
-  float humidity = readDHT22_Hum();
-  int   lux      = readBH1750();
-
-  // Write sensors
-  Firebase.setFloat(fbdo,  "/sensors/temperature", temp);
-  Firebase.setFloat(fbdo,  "/sensors/humidity",    humidity);
-  Firebase.setInt(fbdo,    "/sensors/lux",         lux);
-
-  // Read controls
-  Firebase.getString(fbdo, "/controls/mode");
-  String mode = fbdo.stringData();          // "Auto" or "Manual"
-
-  Firebase.getBool(fbdo, "/controls/ledOn");
-  bool ledOn = fbdo.boolData();
-
-  Firebase.getInt(fbdo, "/controls/ledIntensity");
-  int intensity = fbdo.intData();           // 0–100
-
-  Firebase.getBool(fbdo, "/controls/mistOn");
-  bool mistOn = fbdo.boolData();
-
-  // Act on controls
-  analogWrite(LED_PIN,  ledOn ? map(intensity, 0, 100, 0, 255) : 0);
-  digitalWrite(MIST_PIN, mistOn ? HIGH : LOW);
-
-  delay(2000);
-}
-```
-
-## Data Flow
-
-```
-Hardware sensors
-    ↓  (write every 2s)
-Firebase Realtime DB
-    ↓  (onValue listener ~1s)
-Dashboard UI  ←→  Manual controls
-    ↓  (set() write)
-Firebase Realtime DB
-    ↓  (hardware reads)
-LED / Mist relay actuators
-```
+Configured in `.env` and `src/lib/firebase.ts`:
+- **Project ID**: `smart-polyhouse-dc97b`
+- **Web App ID**: `1:1001801846441:web:19cf298455d8edd61a23b8`
+- **API Key**: `AIzaSyA0v6MgduPFUY1wOdDmvXkklP8ocWVnreE`
+- **Database URL**: `https://smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app`

@@ -1,12 +1,6 @@
 {
   "rules": {
-    "sensors": {
-      ".read":  true,
-      ".write": true
-    },
-    "controls": {
-      ".read":  true,
-      ".write": true
-    }
+    ".read": true,
+    ".write": true
   }
 }

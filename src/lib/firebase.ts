@@ -4,14 +4,15 @@ import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDzx8zIWzrieXpotXrD9SFAYboPYuhjJFU",
-  authDomain: "smart-polyhouse-694e6.firebaseapp.com",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA0v6MgduPFUY1wOdDmvXkklP8ocWVnreE",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "smart-polyhouse-dc97b.firebaseapp.com",
   databaseURL:
-    "https://smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "smart-polyhouse-694e6",
-  storageBucket: "smart-polyhouse-694e6.firebasestorage.app",
-  messagingSenderId: "24335364926",
-  appId: "1:24335364926:web:e92d85f52faa9c465e326f",
+    import.meta.env.VITE_FIREBASE_DATABASE_URL ||
+    "https://smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "smart-polyhouse-dc97b",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "smart-polyhouse-dc97b.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1001801846441",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1001801846441:web:19cf298455d8edd61a23b8",
 };
 
 // Prevent re-initialisation during hot-module reloads

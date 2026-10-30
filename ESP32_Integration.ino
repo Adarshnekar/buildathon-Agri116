@@ -1,267 +1,607 @@
+#include <Arduino.h>
 #include <WiFi.h>
+#include <esp_now.h>
+#include <esp_wifi.h>
+#include <esp_mac.h>
+#include <time.h>
 #include <Firebase_ESP_Client.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <DHT.h>
-
-// Provide the token generation process info.
 #include "addons/TokenHelper.h"
-// Provide the RTDB payload printing info and other helper functions.
 #include "addons/RTDBHelper.h"
 
 // ================= WIFI =================
-#define WIFI_SSID "OnePlus Nord 5"
+#define WIFI_SSID     "Strawhats"
 #define WIFI_PASSWORD "shikajm.r9776"
 
 // ================= FIREBASE =================
-#define DATABASE_URL "smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define DATABASE_SECRET "AIzaSyDzx8zIWzrieXpotXrD9SFAYboPYuhjJFU"
+#define FIREBASE_API_KEY "AIzaSyA0v6MgduPFUY1wOdDmvXkklP8ocWVnreE"
+// Note: URL without trailing slash is required by Firebase_ESP_Client
+#define DATABASE_URL "https://smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app"
 
-// ================= OLED =================
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
+#define FIREBASE_USER_EMAIL "polyhouse299@gmail.com"
+#define FIREBASE_USER_PASSWORD "Polyhouse@123"
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// ================= ESP-NOW =================
+uint8_t receiverMAC[] = {
+  0xC0, 0xCD, 0xD6,
+  0x84, 0x8E, 0x2C
+};
 
 // ================= DHT =================
 #define DHTTYPE DHT11
-
-#define DHT1_PIN 26
-#define DHT2_PIN 33
+#define DHT1_PIN 33
+#define DHT2_PIN 25
 
 DHT dht1(DHT1_PIN, DHTTYPE);
 DHT dht2(DHT2_PIN, DHTTYPE);
 
-// ================= ANALOG LDR =================
-#define LDR1_PIN 27
-#define LDR2_PIN 25
+// ================= SENSOR PINS =================
+#define LDR1_PIN 36
+#define LDR2_PIN 39
 
-// ================= SOIL =================
-#define SOIL1_PIN 14
-#define SOIL2_PIN 32
+#define SOIL1_PIN 35
+#define SOIL2_PIN 27
 
-// ================= MQ2 =================
 #define MQ2_PIN 34
 
 // ================= LED PINS =================
-#define LED1_PIN 2
-#define LED2_PIN 4
-#define LED3_PIN 18
-#define LED4_PIN 19
+#define LED1_PIN 18
+#define LED2_PIN 19
+#define LED3_PIN 5
+#define LED4_PIN 4
 
-// ================= FIREBASE OBJECTS =================
+#define HUMIDIFIER_PIN 23
+
+// ================= LDR CALIBRATION =================
+#define LDR_BRIGHT 300
+#define LDR_DARK 3500
+
+// ================= TIMING =================
+#define SENSOR_INTERVAL 2000
+#define FIREBASE_INTERVAL 5000
+#define LIGHT_DEBUG_INTERVAL 500
+
+// ================= FIREBASE =================
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-// ================= VARIABLES =================
-unsigned long lastLitTime = 0;
-float hoursLit = 0.0;
+// ================= ESP-NOW PACKET =================
+typedef struct {
+  uint32_t sequence;
 
-// PWM Channels
-#define CH1 0
-#define CH2 1
-#define CH3 2
-#define CH4 3
+  float temp1;
+  float temp2;
 
-void setup() {
+  float hum1;
+  float hum2;
 
-  Serial.begin(115200);
+  int ldr1;
+  int ldr2;
 
-  // ================= ADC =================
-  analogReadResolution(12);
-  analogSetAttenuation(ADC_11db);
+  int soil1Percent;
+  bool soil2Wet;
 
-  // ================= DHT =================
-  dht1.begin();
-  dht2.begin();
+  int mq2;
 
-  // ================= OLED =================
-  Wire.begin(21, 22);
+  int led12Percent;
+  int led34Percent;
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("OLED Failed");
-    while (1);
-  }
+  int pwm1;
+  int pwm2;
 
-  display.clearDisplay();
-  display.display();
+  float hoursLit;
 
-  // ================= PWM SETUP =================
-  ledcAttach(LED1_PIN, 5000, 8);
-  ledcAttach(LED2_PIN, 5000, 8);
-  ledcAttach(LED3_PIN, 5000, 8);
-  ledcAttach(LED4_PIN, 5000, 8);
+  bool humidifierState;
+} SensorData;
 
-  // ================= WIFI =================
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+SensorData sensorData;
 
-  Serial.print("Connecting WiFi");
+// ================= SENSOR VARIABLES =================
+float ldr1Smooth = 2000;
+float ldr2Smooth = 2000;
 
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
+float temp1 = 0;
+float temp2 = 0;
+
+float hum1 = 0;
+float hum2 = 0;
+
+int soil1Percent = 0;
+bool soil2Wet = false;
+
+int mq2 = 0;
+
+bool humidifierState = false;
+
+// ================= LIGHT VARIABLES =================
+int rawLdr1 = 0;
+int rawLdr2 = 0;
+
+int ldr1 = 0;
+int ldr2 = 0;
+
+int bright1 = 0;
+int bright2 = 0;
+
+int led12Percent = 0;
+int led34Percent = 0;
+
+bool ledPWMReady = false;
+
+// ================= TIMERS =================
+float hoursLit = 0;
+
+uint32_t packetSequence = 0;
+
+unsigned long litMillis = 0;
+unsigned long sensorMillis = 0;
+unsigned long firebaseMillis = 0;
+unsigned long lightDebugMillis = 0;
+
+// ================= PRINT MAC =================
+void printMasterMAC() {
+  uint8_t mac[6];
+
+  esp_read_mac(mac, ESP_MAC_WIFI_STA);
+
+  Serial.print("Master MAC: ");
+
+  for (int i = 0; i < 6; i++) {
+    if (mac[i] < 16) Serial.print("0");
+    Serial.print(mac[i], HEX);
+    if (i < 5) Serial.print(":");
   }
 
   Serial.println();
-  Serial.println("WiFi Connected");
+}
 
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+// ================= PWM SETUP =================
+void setupLEDs() {
 
-  // ================= FIREBASE =================
+  bool led1OK = ledcAttach(LED1_PIN, 5000, 8);
+  bool led2OK = ledcAttach(LED2_PIN, 5000, 8);
+  bool led3OK = ledcAttach(LED3_PIN, 5000, 8);
+  bool led4OK = ledcAttach(LED4_PIN, 5000, 8);
+
+  ledPWMReady = led1OK && led2OK && led3OK && led4OK;
+
+  Serial.println("\n========== LED PWM SETUP ==========");
+
+  Serial.printf("LED1 GPIO18: %s\n", led1OK ? "OK" : "FAILED");
+  Serial.printf("LED2 GPIO19: %s\n", led2OK ? "OK" : "FAILED");
+  Serial.printf("LED3 GPIO5 : %s\n", led3OK ? "OK" : "FAILED");
+  Serial.printf("LED4 GPIO4 : %s\n", led4OK ? "OK" : "FAILED");
+
+  if (!ledPWMReady) {
+    Serial.println("ERROR: One or more LED PWM channels failed!");
+    return;
+  }
+
+  // Startup LED test
+  Serial.println("Testing all LEDs...");
+
+  ledcWrite(LED1_PIN, 255);
+  ledcWrite(LED2_PIN, 255);
+  ledcWrite(LED3_PIN, 255);
+  ledcWrite(LED4_PIN, 255);
+
+  delay(500);
+
+  ledcWrite(LED1_PIN, 0);
+  ledcWrite(LED2_PIN, 0);
+  ledcWrite(LED3_PIN, 0);
+  ledcWrite(LED4_PIN, 0);
+
+  Serial.println("LED test completed");
+  Serial.println("==================================\n");
+}
+
+// ================= ORIGINAL LDR LIGHT LOGIC =================
+void updateLighting() {
+
+  // Read both LDRs
+  rawLdr1 = analogRead(LDR1_PIN);
+  rawLdr2 = analogRead(LDR2_PIN);
+
+  // Original smoothing logic
+  ldr1Smooth = (ldr1Smooth * 0.7) + (rawLdr1 * 0.3);
+  ldr2Smooth = (ldr2Smooth * 0.7) + (rawLdr2 * 0.3);
+
+  ldr1 = (int)ldr1Smooth;
+  ldr2 = (int)ldr2Smooth;
+
+  // Original brightness mapping
+  // Bright sunlight = LED OFF
+  // Darkness = LED ON
+  bright1 = constrain(
+    map(ldr1, LDR_BRIGHT, LDR_DARK, 255, 0),
+    0,
+    255
+  );
+
+  bright2 = constrain(
+    map(ldr2, LDR_BRIGHT, LDR_DARK, 255, 0),
+    0,
+    255
+  );
+
+  // Original LED connections
+  // LDR1 -> LED3 + LED4
+  // LDR2 -> LED1 + LED2
+  if (ledPWMReady) {
+
+    ledcWrite(LED3_PIN, bright1);
+    ledcWrite(LED4_PIN, bright1);
+
+    ledcWrite(LED1_PIN, bright2);
+    ledcWrite(LED2_PIN, bright2);
+  }
+
+  // Original percentages
+  led12Percent = map(bright2, 0, 255, 0, 100);
+  led34Percent = map(bright1, 0, 255, 0, 100);
+}
+
+// ================= LIGHT DEBUG =================
+void printLightDebug() {
+
+  if (millis() - lightDebugMillis < LIGHT_DEBUG_INTERVAL) {
+    return;
+  }
+
+  lightDebugMillis = millis();
+
+  Serial.println("\n---------- LIGHT CONTROL ----------");
+
+  Serial.printf("LDR1 raw      : %d\n", rawLdr1);
+  Serial.printf("LDR1 smooth   : %d\n", ldr1);
+  Serial.printf("LED3 + LED4   : PWM %d (%d%%)\n",
+                bright1, led34Percent);
+
+  Serial.println("-----------------------------------");
+
+  Serial.printf("LDR2 raw      : %d\n", rawLdr2);
+  Serial.printf("LDR2 smooth   : %d\n", ldr2);
+  Serial.printf("LED1 + LED2   : PWM %d (%d%%)\n",
+                bright2, led12Percent);
+
+  Serial.println("-----------------------------------");
+
+  Serial.printf("PWM status    : %s\n",
+                ledPWMReady ? "READY" : "FAILED");
+
+  Serial.println("-----------------------------------");
+}
+
+// ================= ESP-NOW SETUP =================
+void setupESPNow() {
+
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("ESP-NOW initialization failed!");
+    return;
+  }
+
+  esp_now_peer_info_t peerInfo = {};
+
+  memcpy(peerInfo.peer_addr, receiverMAC, 6);
+
+  // Use current Wi-Fi channel
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  if (!esp_now_is_peer_exist(receiverMAC)) {
+
+    if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+      Serial.println("ESP-NOW peer registration failed!");
+      return;
+    }
+  }
+
+  Serial.println("ESP-NOW initialized successfully!");
+}
+
+// ================= SEND ESP-NOW DATA =================
+void sendSensorData() {
+
+  sensorData.sequence = ++packetSequence;
+
+  sensorData.temp1 = temp1;
+  sensorData.temp2 = temp2;
+
+  sensorData.hum1 = hum1;
+  sensorData.hum2 = hum2;
+
+  sensorData.ldr1 = ldr1;
+  sensorData.ldr2 = ldr2;
+
+  sensorData.soil1Percent = soil1Percent;
+  sensorData.soil2Wet = soil2Wet;
+
+  sensorData.mq2 = mq2;
+
+  sensorData.led12Percent = led12Percent;
+  sensorData.led34Percent = led34Percent;
+
+  sensorData.pwm1 = bright1;
+  sensorData.pwm2 = bright2;
+
+  sensorData.hoursLit = hoursLit;
+
+  sensorData.humidifierState = humidifierState;
+
+  esp_err_t result = esp_now_send(
+    receiverMAC,
+    (uint8_t *)&sensorData,
+    sizeof(sensorData)
+  );
+
+  if (result == ESP_OK) {
+    Serial.println("ESP-NOW: Packet queued");
+  } else {
+    Serial.printf("ESP-NOW error: %d\n", result);
+  }
+}
+
+// ================= FIREBASE SETUP =================
+void setupFirebase() {
+
+  config.api_key = FIREBASE_API_KEY;
   config.database_url = DATABASE_URL;
-  config.signer.tokens.legacy_token = DATABASE_SECRET;
+
+  auth.user.email = FIREBASE_USER_EMAIL;
+  auth.user.password = FIREBASE_USER_PASSWORD;
+
+  config.token_status_callback = tokenStatusCallback;
+
+  // Optional: Set buffer size if needed
+  fbdo.setResponseSize(2048);
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
 
-  Serial.println("Firebase Connected");
-
-  lastLitTime = millis();
+  Serial.println("Firebase initialized");
 }
 
+// ================= FIREBASE UPLOAD =================
+void uploadFirebase() {
+
+  if (!Firebase.ready()) {
+    Serial.println("Firebase waiting for token readiness...");
+    return;
+  }
+
+  // Calculate aggregated values for dashboard compatibility
+  float avgTemp = (temp1 > 0 && temp2 > 0) ? ((temp1 + temp2) / 2.0) : (temp1 > 0 ? temp1 : temp2);
+  float avgHum  = (hum1 > 0 && hum2 > 0) ? ((hum1 + hum2) / 2.0) : (hum1 > 0 ? hum1 : hum2);
+  int avgLdr    = (ldr1 + ldr2) / 2;
+  int luxEst    = map(constrain(avgLdr, LDR_BRIGHT, LDR_DARK), LDR_DARK, LDR_BRIGHT, 150, 45000);
+
+  FirebaseJson json;
+
+  // Hardware Raw & Dual Readings
+  json.set("sensors/temp1", temp1);
+  json.set("sensors/temp2", temp2);
+  json.set("sensors/hum1", hum1);
+  json.set("sensors/hum2", hum2);
+  json.set("sensors/ldr1", ldr1);
+  json.set("sensors/ldr2", ldr2);
+  json.set("sensors/led12Percent", led12Percent);
+  json.set("sensors/led34Percent", led34Percent);
+  json.set("sensors/pwm1", bright1);
+  json.set("sensors/pwm2", bright2);
+  json.set("sensors/hoursLit", hoursLit);
+  json.set("sensors/soil1Percent", soil1Percent);
+  json.set("sensors/soil2Wet", soil2Wet);
+  json.set("sensors/mq2", mq2);
+
+  // Standard Polyhouse Dashboard Fields
+  json.set("sensors/temperature", avgTemp);
+  json.set("sensors/humidity", avgHum);
+  json.set("sensors/lux", luxEst);
+  json.set("sensors/soilMoisture", soil1Percent);
+  json.set("sensors/lightRaw", avgLdr);
+  json.set("sensors/ledBrightness", (led12Percent + led34Percent) / 2);
+
+  // Actuators
+  json.set("actuators/humidifier", humidifierState);
+
+  if (Firebase.RTDB.updateNode(&fbdo, "/", &json)) {
+    Serial.println("Firebase upload successful: Realtime data synchronized!");
+  } else {
+    Serial.print("Firebase upload error: ");
+    Serial.println(fbdo.errorReason());
+  }
+}
+
+// ================= READ SENSORS =================
+void readOtherSensors() {
+
+  // DHT sensors
+  float t1 = dht1.readTemperature();
+  float h1 = dht1.readHumidity();
+
+  float t2 = dht2.readTemperature();
+  float h2 = dht2.readHumidity();
+
+  if (!isnan(t1)) temp1 = t1;
+  if (!isnan(h1)) hum1 = h1;
+
+  if (!isnan(t2)) temp2 = t2;
+  if (!isnan(h2)) hum2 = h2;
+
+  // Soil sensor 1
+  long soilTotal = 0;
+
+  for (int i = 0; i < 5; i++) {
+    soilTotal += analogRead(SOIL1_PIN);
+  }
+
+  soil1Percent = constrain(
+    map(soilTotal / 5, 4095, 1500, 0, 100),
+    0,
+    100
+  );
+
+  // Soil sensor 2
+  soil2Wet = (digitalRead(SOIL2_PIN) == LOW);
+
+  // MQ2
+  mq2 = analogRead(MQ2_PIN);
+
+  // Original humidifier logic
+  humidifierState = (hum1 < 60 && hum2 < 60);
+
+  digitalWrite(
+    HUMIDIFIER_PIN,
+    humidifierState ? HIGH : LOW
+  );
+}
+
+// ================= SERIAL OUTPUT =================
+void printSensorData() {
+
+  Serial.println("\n========== PRAKRUTHI SMART POLYHOUSE ==========");
+
+  Serial.printf("Temperature 1 : %.1f C\n", temp1);
+  Serial.printf("Temperature 2 : %.1f C\n", temp2);
+
+  Serial.printf("Humidity 1    : %.1f %%\n", hum1);
+  Serial.printf("Humidity 2    : %.1f %%\n", hum2);
+
+  Serial.println("-----------------------------------------------");
+
+  Serial.printf("LDR 1         : %d\n", ldr1);
+  Serial.printf("LDR 2         : %d\n", ldr2);
+
+  Serial.printf("LED 1 + 2     : %d %%\n", led12Percent);
+  Serial.printf("LED 3 + 4     : %d %%\n", led34Percent);
+
+  Serial.printf("PWM 1         : %d\n", bright1);
+  Serial.printf("PWM 2         : %d\n", bright2);
+
+  Serial.printf("Hours Lit     : %.3f\n", hoursLit);
+
+  Serial.println("-----------------------------------------------");
+
+  Serial.printf("Soil 1        : %d %%\n", soil1Percent);
+  Serial.printf("Soil 2        : %s\n", soil2Wet ? "WET" : "DRY");
+
+  Serial.printf("MQ2           : %d\n", mq2);
+
+  Serial.printf("Humidifier    : %s\n",
+                humidifierState ? "ON" : "OFF");
+
+  Serial.printf("ESP-NOW Seq   : %lu\n",
+                (unsigned long)packetSequence);
+
+  Serial.println("===============================================");
+}
+
+// ================= SETUP =================
+void setup() {
+
+  Serial.begin(115200);
+  delay(1000);
+
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+
+  dht1.begin();
+  dht2.begin();
+
+  pinMode(SOIL2_PIN, INPUT);
+
+  pinMode(HUMIDIFIER_PIN, OUTPUT);
+  digitalWrite(HUMIDIFIER_PIN, LOW);
+
+  // LED PWM
+  setupLEDs();
+
+  // Wi-Fi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.print("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(300);
+  }
+
+  Serial.println("\nWiFi connected!");
+
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  printMasterMAC();
+
+  Serial.print("WiFi channel: ");
+  Serial.println(WiFi.channel());
+
+  // Configure NTP time (required for SSL certificate & token validation)
+  configTime(19800, 0, "pool.ntp.org", "time.google.com");
+
+  // ESP-NOW
+  setupESPNow();
+
+  // Firebase
+  setupFirebase();
+
+  litMillis = millis();
+  sensorMillis = millis();
+  firebaseMillis = millis();
+}
+
+// ================= MAIN LOOP =================
 void loop() {
 
-  // ================= DHT =================
-  float temp1 = dht1.readTemperature();
-  float hum1  = dht1.readHumidity();
+  // =========================================
+  // FAST LIGHTING BLOCK
+  // Preserve original LDR logic
+  // =========================================
 
-  float temp2 = dht2.readTemperature();
-  float hum2  = dht2.readHumidity();
+  updateLighting();
 
-  float avgTemp = (temp1 + temp2) / 2.0;
-  float avgHum  = (hum1 + hum2) / 2.0;
+  // Hours lit tracker
+  unsigned long now = millis();
 
-  // ================= ANALOG LDR =================
-  int ldr1 = analogRead(LDR1_PIN);
-  int ldr2 = analogRead(LDR2_PIN);
-
-  int avgLight = (ldr1 + ldr2) / 2;
-
-  // ================= FIREBASE READ (FROM FRONTEND) =================
-  String mode = "Auto";
-  if (Firebase.RTDB.getString(&fbdo, "controls/mode")) {
-    mode = fbdo.stringData();
+  if (bright1 > 10 || bright2 > 10) {
+    hoursLit += (now - litMillis) / 3600000.0;
   }
 
-  int brightness = 0;
+  litMillis = now;
 
-  if (mode == "Manual") {
-    // Check if the user turned the LED ON from the dashboard
-    bool ledOn = false;
-    if (Firebase.RTDB.getBool(&fbdo, "controls/ledOn")) {
-      ledOn = fbdo.boolData();
-    }
-    
-    // Check the intensity slider from the dashboard (0 - 100)
-    int ledIntensity = 100;
-    if (Firebase.RTDB.getInt(&fbdo, "controls/ledIntensity")) {
-      ledIntensity = fbdo.intData(); 
-    }
-    
-    if (ledOn) {
-      // Convert 0-100% to 0-255 PWM
-      brightness = map(ledIntensity, 0, 100, 0, 255);
-    } else {
-      brightness = 0; // Turn off completely
-    }
-  } else {
-    // AUTO MODE: Convert light value to PWM brightness
-    // Bright sunlight -> dim LEDs; Low sunlight -> bright LEDs
-    brightness = map(avgLight, 0, 4095, 255, 0);
+  // Light diagnostics
+  printLightDebug();
+
+  // =========================================
+  // SENSOR + ESP-NOW BLOCK
+  // =========================================
+
+  if (millis() - sensorMillis >= SENSOR_INTERVAL) {
+
+    sensorMillis = millis();
+
+    readOtherSensors();
+
+    sendSensorData();
+
+    printSensorData();
   }
 
-  brightness = constrain(brightness, 0, 255);
+  // =========================================
+  // FIREBASE BLOCK
+  // Upload less frequently to reduce interruptions
+  // to the fast LDR sampling loop.
+  // =========================================
 
-  // Apply PWM to all LEDs
-  ledcWrite(LED1_PIN, brightness);
-  ledcWrite(LED2_PIN, brightness);
-  ledcWrite(LED3_PIN, brightness);
-  ledcWrite(LED4_PIN, brightness);
+  if (millis() - firebaseMillis >= FIREBASE_INTERVAL) {
 
-  // Estimate Lux
-  int lux = map(avgLight, 0, 4095, 0, 50000);
+    firebaseMillis = millis();
 
-  // Track lighting hours
-  if (brightness > 50) {
-    hoursLit += (millis() - lastLitTime) / 3600000.0;
+    uploadFirebase();
   }
 
-  lastLitTime = millis();
-
-  // ================= SOIL =================
-  int soil1 = analogRead(SOIL1_PIN);
-  int soil2 = analogRead(SOIL2_PIN);
-
-  int avgSoilRaw = (soil1 + soil2) / 2;
-  int soilMoisturePct = map(avgSoilRaw, 4095, 1500, 0, 100);
-  soilMoisturePct = constrain(soilMoisturePct, 0, 100);
-
-  // ================= AUTOMATIC MIST CONTROL =================
-  bool mistOn = false;
-  
-  if (mode == "Manual") {
-    if (Firebase.RTDB.getBool(&fbdo, "controls/mistOn")) {
-      mistOn = fbdo.boolData();
-    }
-  } else {
-    if(avgHum < 60) {
-      mistOn = true;
-    }
-  }
-
-  // ================= MQ2 =================
-  int mq2 = analogRead(MQ2_PIN);
-
-  // ================= OLED =================
-  display.clearDisplay();
-
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-
-  display.setCursor(0, 0);
-  display.print("T:"); display.print(avgTemp);
-
-  display.setCursor(64, 0);
-  display.print("H:"); display.print(avgHum);
-
-  display.setCursor(0, 10);
-  display.print("L1:"); display.print(ldr1);
-
-  display.setCursor(64, 10);
-  display.print("L2:"); display.print(ldr2);
-
-  display.setCursor(0, 20);
-  display.print("PWM:"); display.print(brightness);
-
-  display.setCursor(0, 30);
-  display.print("S1:"); display.print(soil1);
-
-  display.setCursor(64, 30);
-  display.print("S2:"); display.print(soil2);
-
-  display.setCursor(0, 40);
-  display.print("MQ2:"); display.print(mq2);
-
-  display.display();
-
-  // ================= FIREBASE SEND (TO FRONTEND) =================
-  Firebase.RTDB.setFloat(&fbdo, "sensors/temperature", avgTemp);
-  Firebase.RTDB.setFloat(&fbdo, "sensors/humidity", avgHum);
-  Firebase.RTDB.setInt(&fbdo, "sensors/lux", lux);
-  Firebase.RTDB.setInt(&fbdo, "sensors/lightRaw", avgLight);
-  Firebase.RTDB.setInt(&fbdo, "sensors/ledBrightness", brightness);
-  Firebase.RTDB.setFloat(&fbdo, "sensors/hoursLit", hoursLit);
-  Firebase.RTDB.setInt(&fbdo, "sensors/soilMoisture", soilMoisturePct);
-  Firebase.RTDB.setInt(&fbdo, "sensors/soil1", soil1);
-  Firebase.RTDB.setInt(&fbdo, "sensors/soil2", soil2);
-  Firebase.RTDB.setInt(&fbdo, "sensors/mq2", mq2);
-  Firebase.RTDB.setBool(&fbdo, "actuators/mist", mistOn);
-
-  Serial.println("Data Sent");
-
-  delay(2000);
+  yield();
 }

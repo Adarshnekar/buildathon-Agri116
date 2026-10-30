@@ -11,38 +11,72 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDzx8zIWzrieXpotXrD9SFAYboPYuhjJFU",
-  authDomain: "smart-polyhouse-694e6.firebaseapp.com",
+  apiKey: "AIzaSyA0v6MgduPFUY1wOdDmvXkklP8ocWVnreE",
+  authDomain: "smart-polyhouse-dc97b.firebaseapp.com",
   databaseURL:
-    "https://smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "smart-polyhouse-694e6",
-  storageBucket: "smart-polyhouse-694e6.firebasestorage.app",
-  messagingSenderId: "24335364926",
-  appId: "1:24335364926:web:e92d85f52faa9c465e326f",
+    "https://smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "smart-polyhouse-dc97b",
+  storageBucket: "smart-polyhouse-dc97b.firebasestorage.app",
+  messagingSenderId: "1001801846441",
+  appId: "1:1001801846441:web:19cf298455d8edd61a23b8",
 };
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
 async function seed() {
-  console.log("🌱  Seeding Firebase Realtime Database…\n");
+  console.log("🌱  Seeding Firebase Realtime Database for smart-polyhouse-dc97b…\n");
 
-  // ── Sensor readings (written by your hardware) ──────────────────
-  await set(ref(db, "sensors/temperature"), 26.4);
-  await set(ref(db, "sensors/humidity"),    58);
-  await set(ref(db, "sensors/lux"),         18000);
-  await set(ref(db, "sensors/hoursLit"),    6.2);
+  // ── Sensor readings (ESP32 hardware fields & dashboard fields) ──
+  const initialSensors = {
+    // Primary / Calculated dashboard fields
+    temperature: 26.4,
+    humidity: 58.0,
+    lux: 18000,
+    hoursLit: 6.2,
+    soilMoisture: 42,
+    mq2: 340,
+    soil1: 2150,
+    soil2: 2280,
+    lightRaw: 1650,
+    ledBrightness: 0,
+    solarVoltage: 18.2,
+
+    // Hardware specific dual-sensor fields
+    temp1: 26.2,
+    temp2: 26.6,
+    hum1: 57.5,
+    hum2: 58.5,
+    ldr1: 1620,
+    ldr2: 1680,
+    led12Percent: 0,
+    led34Percent: 0,
+    pwm1: 0,
+    pwm2: 0,
+    soil1Percent: 42,
+    soil2Wet: false
+  };
+
+  await set(ref(db, "sensors"), initialSensors);
   console.log("✅  sensors/  seeded");
 
-  // ── Control defaults (written by the dashboard) ─────────────────
-  await set(ref(db, "controls/mode"),         "Auto");
-  await set(ref(db, "controls/ledOn"),        false);
-  await set(ref(db, "controls/ledIntensity"), 0);
-  await set(ref(db, "controls/mistOn"),       false);
+  // ── Actuators ──────────────────────────────────────────────────
+  await set(ref(db, "actuators"), {
+    humidifier: false
+  });
+  console.log("✅  actuators/ seeded");
+
+  // ── Control defaults (written by dashboard) ─────────────────────
+  await set(ref(db, "controls"), {
+    mode: "Auto",
+    ledOn: false,
+    ledIntensity: 0,
+    mistOn: false
+  });
   console.log("✅  controls/ seeded");
 
   console.log("\n🎉  Done! Your Firebase database now has initial values.");
-  console.log("    Open the dashboard — it should show 'Live · Firebase' immediately.\n");
+  console.log("    Open the dashboard — it will show 'Live · Firebase' immediately.\n");
   process.exit(0);
 }
 
