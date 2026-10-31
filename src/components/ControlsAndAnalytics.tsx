@@ -33,7 +33,6 @@ import { Stage, GROWTH_STAGES } from "@/lib/growthStages";
 
 export type Mode = "Auto" | "Manual";
 
-
 export interface ControlsAndAnalyticsProps {
   // Real-time sensor readings from Firebase
   temp: number;
@@ -132,7 +131,6 @@ export default function ControlsAndAnalytics({
     setSliderVal(ledIntensity);
   }, [ledIntensity]);
 
-
   // ── Handler: Operating Mode Toggle ──────────────────────────────
   const handleModeChange = async (targetMode: Mode) => {
     if (isSyncingMode || mode === targetMode) return;
@@ -203,10 +201,10 @@ export default function ControlsAndAnalytics({
   // ── Dual Soil Probes Calibration (ESP32 ADC -> %) ──────────────
   // ESP32 formula: map(raw, 4095, 1500, 0, 100)
   const zone1Moisture = Math.round(
-    Math.max(0, Math.min(100, ((4095 - soil1) / (4095 - 1500)) * 100))
+    Math.max(0, Math.min(100, ((4095 - soil1) / (4095 - 1500)) * 100)),
   );
   const zone2Moisture = Math.round(
-    Math.max(0, Math.min(100, ((4095 - soil2) / (4095 - 1500)) * 100))
+    Math.max(0, Math.min(100, ((4095 - soil2) / (4095 - 1500)) * 100)),
   );
   const zoneDifference = Math.abs(zone1Moisture - zone2Moisture);
 
@@ -244,8 +242,8 @@ export default function ControlsAndAnalytics({
               connected
                 ? "border-leaf/30 bg-leaf-soft text-leaf"
                 : loading
-                ? "border-border bg-secondary text-muted-foreground"
-                : "border-warning/30 bg-warning-soft text-warning"
+                  ? "border-border bg-secondary text-muted-foreground"
+                  : "border-warning/30 bg-warning-soft text-warning"
             }`}
           >
             {loading ? (
@@ -263,13 +261,11 @@ export default function ControlsAndAnalytics({
                 {connected
                   ? "ESP32 NODE ONLINE"
                   : loading
-                  ? "SYNCING TELEMETRY..."
-                  : "NODE OFFLINE"}
+                    ? "SYNCING TELEMETRY..."
+                    : "NODE OFFLINE"}
               </span>
               <span className="text-[9px] opacity-80">
-                {connected && lastUpdated
-                  ? `Sync: ${lastUpdated}`
-                  : "Firebase RTDB Stream"}
+                {connected && lastUpdated ? `Sync: ${lastUpdated}` : "Firebase RTDB Stream"}
               </span>
             </div>
           </div>
@@ -281,9 +277,7 @@ export default function ControlsAndAnalytics({
             </span>
             <Badge
               className={`text-xs font-extrabold px-2.5 py-0.5 ${
-                mode === "Auto"
-                  ? "bg-leaf text-white"
-                  : "bg-warning text-white"
+                mode === "Auto" ? "bg-leaf text-white" : "bg-warning text-white"
               }`}
             >
               {mode.toUpperCase()}
@@ -378,18 +372,14 @@ export default function ControlsAndAnalytics({
                       <Lightbulb className="h-5 w-5" />
                     </span>
                     <div>
-                      <h4 className="text-sm font-bold text-foreground">
-                        Grow Light System
-                      </h4>
+                      <h4 className="text-sm font-bold text-foreground">Grow Light System</h4>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <Badge
                       className={`text-xs font-semibold ${
-                        ledOn
-                          ? "bg-leaf text-white"
-                          : "bg-secondary text-muted-foreground"
+                        ledOn ? "bg-leaf text-white" : "bg-secondary text-muted-foreground"
                       }`}
                     >
                       {isSyncingLed ? (
@@ -421,7 +411,7 @@ export default function ControlsAndAnalytics({
                     <span className="font-bold text-foreground">
                       {ledBrightness > 0
                         ? `${ledBrightness} / 255 PWM (${Math.round(
-                            (ledBrightness / 255) * 100
+                            (ledBrightness / 255) * 100,
                           )}% duty)`
                         : "0 PWM · Standby"}
                     </span>
@@ -438,9 +428,7 @@ export default function ControlsAndAnalytics({
                 <div className="space-y-2 pt-1">
                   <div className="flex justify-between text-xs font-medium text-muted-foreground">
                     <span>Brightness Duty Cycle</span>
-                    <span className="font-bold text-foreground">
-                      {sliderVal}%
-                    </span>
+                    <span className="font-bold text-foreground">{sliderVal}%</span>
                   </div>
 
                   <input
@@ -497,9 +485,7 @@ export default function ControlsAndAnalytics({
                   <div className="flex items-center gap-3">
                     <Badge
                       className={`text-xs font-semibold ${
-                        mistOn
-                          ? "bg-water text-white"
-                          : "bg-secondary text-muted-foreground"
+                        mistOn ? "bg-water text-white" : "bg-secondary text-muted-foreground"
                       }`}
                     >
                       {isSyncingMist ? (
@@ -529,9 +515,7 @@ export default function ControlsAndAnalytics({
                       Valve State
                     </span>
                     <span className="font-bold text-foreground">
-                      {mistOn
-                        ? "OPEN (Spraying)"
-                        : "CLOSED (Standby)"}
+                      {mistOn ? "OPEN (Spraying)" : "CLOSED (Standby)"}
                     </span>
                   </div>
                   <div className="text-right">
@@ -572,8 +556,8 @@ export default function ControlsAndAnalytics({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-secondary/50 px-4 py-3 border border-border/70 text-xs">
               <span className="flex items-center gap-2 text-foreground/80 font-medium">
                 <CheckCircle2 className="h-4 w-4 text-leaf shrink-0" />
-                Firebase Realtime Database synchronization: Commands sync with
-                ESP32 dual-core loop every 2000ms.
+                Firebase Realtime Database synchronization: Commands sync with ESP32 dual-core loop
+                every 2000ms.
               </span>
               <span className="text-[11px] font-semibold text-muted-foreground shrink-0">
                 Endpoint: smart-polyhouse-694e6
@@ -628,12 +612,12 @@ export default function ControlsAndAnalytics({
                       / {targetDLI} mol·m⁻²·d⁻¹ Target
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Natural solar: <span className="font-semibold text-foreground">{naturalDLI}</span> · LED supplementary: <span className="font-semibold text-foreground">{ledDLI}</span>
+                      Natural solar:{" "}
+                      <span className="font-semibold text-foreground">{naturalDLI}</span> · LED
+                      supplementary: <span className="font-semibold text-foreground">{ledDLI}</span>
                     </p>
                   </div>
-                  <span className="text-3xl font-bold text-leaf tabular-nums">
-                    {dliPct}%
-                  </span>
+                  <span className="text-3xl font-bold text-leaf tabular-nums">{dliPct}%</span>
                 </div>
 
                 <Progress value={dliPct} className="h-2.5 bg-secondary my-3" />
@@ -644,19 +628,25 @@ export default function ControlsAndAnalytics({
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Solar Share
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{solarShare}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">
+                    {solarShare}%
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     LED Hours
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{ledHoursToday.toFixed(1)}h</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">
+                    {ledHoursToday.toFixed(1)}h
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Saved Energy
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{energySavedPct}%</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">
+                    {energySavedPct}%
+                  </p>
                 </div>
               </div>
             </div>
@@ -703,7 +693,9 @@ export default function ControlsAndAnalytics({
                   <div className="rounded-xl bg-secondary/50 p-3.5 border border-border/60 space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Photoperiod Target:</span>
-                      <span className="font-semibold text-foreground">{photoperiodTarget}h / day</span>
+                      <span className="font-semibold text-foreground">
+                        {photoperiodTarget}h / day
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Sunlight Captured:</span>
@@ -752,7 +744,10 @@ export default function ControlsAndAnalytics({
                         : "bg-warning text-white"
                     }`}
                   >
-                    Status: {temp >= profile.tempDayMin && temp <= profile.tempDayMax ? "Optimal" : "Attention"}
+                    Status:{" "}
+                    {temp >= profile.tempDayMin && temp <= profile.tempDayMax
+                      ? "Optimal"
+                      : "Attention"}
                   </Badge>
                 </div>
 
@@ -765,12 +760,14 @@ export default function ControlsAndAnalytics({
                       / {profile.tempDayMin}–{profile.tempDayMax}°C Target
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Humidity: <span className="font-semibold text-foreground">{humidity}%</span> (Target: {profile.humidityMin}–{profile.humidityMax}%) · Canopy Light: <span className="font-semibold text-foreground">{(lux / 1000).toFixed(1)}k lux</span>
+                      Humidity: <span className="font-semibold text-foreground">{humidity}%</span>{" "}
+                      (Target: {profile.humidityMin}–{profile.humidityMax}%) · Canopy Light:{" "}
+                      <span className="font-semibold text-foreground">
+                        {(lux / 1000).toFixed(1)}k lux
+                      </span>
                     </p>
                   </div>
-                  <span className="text-3xl font-bold text-leaf tabular-nums">
-                    {humidity}% RH
-                  </span>
+                  <span className="text-3xl font-bold text-leaf tabular-nums">{humidity}% RH</span>
                 </div>
 
                 <Progress
@@ -790,13 +787,17 @@ export default function ControlsAndAnalytics({
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Humidity
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{humidity}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">
+                    {humidity}%
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Canopy Light
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{(lux / 1000).toFixed(1)}k lux</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">
+                    {(lux / 1000).toFixed(1)}k lux
+                  </p>
                 </div>
               </div>
             </div>
@@ -809,8 +810,12 @@ export default function ControlsAndAnalytics({
                     <Flame className="h-4 w-4" />
                   </span>
                   <div>
-                    <h4 className="text-base font-bold text-foreground">Air Quality & Gas (MQ-2)</h4>
-                    <p className="text-xs text-muted-foreground">Atmospheric purity & safety monitoring</p>
+                    <h4 className="text-base font-bold text-foreground">
+                      Air Quality & Gas (MQ-2)
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Atmospheric purity & safety monitoring
+                    </p>
                   </div>
                 </div>
 
@@ -818,13 +823,19 @@ export default function ControlsAndAnalytics({
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
                       <span>Gas Concentration vs Threshold</span>
-                      <span className={mq2 < 700 ? "text-leaf font-bold" : "text-warning font-bold"}>
+                      <span
+                        className={mq2 < 700 ? "text-leaf font-bold" : "text-warning font-bold"}
+                      >
                         {mq2 < 700 ? "Clean Atmosphere" : "Warning Level"}
                       </span>
                     </div>
                     <div className="flex h-2.5 overflow-hidden rounded-full bg-secondary">
                       <div
-                        className={mq2 < 700 ? "bg-leaf transition-all duration-500" : "bg-warning transition-all duration-500"}
+                        className={
+                          mq2 < 700
+                            ? "bg-leaf transition-all duration-500"
+                            : "bg-warning transition-all duration-500"
+                        }
                         style={{ width: `${Math.min(100, Math.round((mq2 / 1000) * 100))}%` }}
                       />
                     </div>
@@ -857,7 +868,9 @@ export default function ControlsAndAnalytics({
 
               <div className="mt-4 pt-3 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>Atmospheric Index</span>
-                <span className="font-bold text-leaf">{mq2 < 700 ? "Grade A · Clean Air" : "Notice"}</span>
+                <span className="font-bold text-leaf">
+                  {mq2 < 700 ? "Grade A · Clean Air" : "Notice"}
+                </span>
               </div>
             </div>
           </div>
@@ -890,7 +903,10 @@ export default function ControlsAndAnalytics({
                         : "bg-secondary text-foreground"
                     }`}
                   >
-                    Status: {soilMoisture >= 40 && soilMoisture <= 70 ? "Optimal Moisture" : "Check Moisture"}
+                    Status:{" "}
+                    {soilMoisture >= 40 && soilMoisture <= 70
+                      ? "Optimal Moisture"
+                      : "Check Moisture"}
                   </Badge>
                 </div>
 
@@ -903,12 +919,17 @@ export default function ControlsAndAnalytics({
                       / 40%–70% Target Band
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Zone 1: <span className="font-semibold text-foreground">{zone1Moisture}% ({soil1} ADC)</span> · Zone 2: <span className="font-semibold text-foreground">{zone2Moisture}% ({soil2} ADC)</span>
+                      Zone 1:{" "}
+                      <span className="font-semibold text-foreground">
+                        {zone1Moisture}% ({soil1} ADC)
+                      </span>{" "}
+                      · Zone 2:{" "}
+                      <span className="font-semibold text-foreground">
+                        {zone2Moisture}% ({soil2} ADC)
+                      </span>
                     </p>
                   </div>
-                  <span className="text-3xl font-bold text-leaf tabular-nums">
-                    {soilMoisture}%
-                  </span>
+                  <span className="text-3xl font-bold text-leaf tabular-nums">{soilMoisture}%</span>
                 </div>
 
                 <Progress value={soilMoisture} className="h-2.5 bg-secondary my-3" />
@@ -919,19 +940,25 @@ export default function ControlsAndAnalytics({
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Zone 1 (S1)
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{zone1Moisture}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">
+                    {zone1Moisture}%
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Zone 2 (S2)
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{zone2Moisture}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">
+                    {zone2Moisture}%
+                  </p>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
                   <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Delta
                   </p>
-                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{zoneDifference}%</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">
+                    {zoneDifference}%
+                  </p>
                 </div>
               </div>
             </div>
@@ -944,8 +971,12 @@ export default function ControlsAndAnalytics({
                     <Droplets className="h-4 w-4" />
                   </span>
                   <div>
-                    <h4 className="text-base font-bold text-foreground">Irrigation & Misting Activity</h4>
-                    <p className="text-xs text-muted-foreground">Sub-canopy humidity booster & cooling</p>
+                    <h4 className="text-base font-bold text-foreground">
+                      Irrigation & Misting Activity
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Sub-canopy humidity booster & cooling
+                    </p>
                   </div>
                 </div>
 
@@ -953,13 +984,21 @@ export default function ControlsAndAnalytics({
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
                       <span>Misting Actuator State</span>
-                      <span className={mistOn ? "text-water font-bold" : "text-muted-foreground font-semibold"}>
+                      <span
+                        className={
+                          mistOn ? "text-water font-bold" : "text-muted-foreground font-semibold"
+                        }
+                      >
                         {mistOn ? "Active (Spraying)" : "Idle (Standby)"}
                       </span>
                     </div>
                     <div className="flex h-2.5 overflow-hidden rounded-full bg-secondary">
                       <div
-                        className={mistOn ? "bg-water transition-all duration-500 w-full" : "bg-muted transition-all duration-500 w-0"}
+                        className={
+                          mistOn
+                            ? "bg-water transition-all duration-500 w-full"
+                            : "bg-muted transition-all duration-500 w-0"
+                        }
                       />
                     </div>
                     <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
@@ -975,7 +1014,9 @@ export default function ControlsAndAnalytics({
                   <div className="rounded-xl bg-secondary/50 p-3.5 border border-border/60 space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Valve Actuator:</span>
-                      <span className="font-semibold text-foreground">{mistOn ? "OPEN (Active)" : "CLOSED (Idle)"}</span>
+                      <span className="font-semibold text-foreground">
+                        {mistOn ? "OPEN (Active)" : "CLOSED (Idle)"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Auto-Trigger Threshold:</span>
@@ -991,7 +1032,9 @@ export default function ControlsAndAnalytics({
 
               <div className="mt-4 pt-3 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>Root Hydration Index</span>
-                <span className="font-bold text-leaf">{zoneDifference <= 10 ? "Grade A · Uniform" : "Grade B · Variance"}</span>
+                <span className="font-bold text-leaf">
+                  {zoneDifference <= 10 ? "Grade A · Uniform" : "Grade B · Variance"}
+                </span>
               </div>
             </div>
           </div>
@@ -1019,9 +1062,7 @@ export default function ControlsAndAnalytics({
                   </div>
                   <Badge
                     className={`text-xs font-semibold ${
-                      connected
-                        ? "bg-leaf text-white"
-                        : "bg-warning text-white"
+                      connected ? "bg-leaf text-white" : "bg-warning text-white"
                     }`}
                   >
                     Status: {connected ? "Online" : loading ? "Syncing" : "Offline"}
@@ -1037,7 +1078,12 @@ export default function ControlsAndAnalytics({
                       · Live Stream
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Transport: <span className="font-semibold text-foreground">Firebase RTDB WebSocket</span> · Last Sync: <span className="font-semibold text-foreground">{lastUpdated || "Awaiting Stream"}</span>
+                      Transport:{" "}
+                      <span className="font-semibold text-foreground">Firebase RTDB WebSocket</span>{" "}
+                      · Last Sync:{" "}
+                      <span className="font-semibold text-foreground">
+                        {lastUpdated || "Awaiting Stream"}
+                      </span>
                     </p>
                   </div>
                   <span className="text-3xl font-bold text-leaf tabular-nums">
@@ -1079,7 +1125,9 @@ export default function ControlsAndAnalytics({
                   </span>
                   <div>
                     <h4 className="text-base font-bold text-foreground">Actuator Hardware State</h4>
-                    <p className="text-xs text-muted-foreground">Direct hardware output synchronization</p>
+                    <p className="text-xs text-muted-foreground">
+                      Direct hardware output synchronization
+                    </p>
                   </div>
                 </div>
 
@@ -1087,7 +1135,9 @@ export default function ControlsAndAnalytics({
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
                       <span>Grow LED Output</span>
-                      <span className="text-leaf font-bold">{ledOn ? `${ledIntensity}% PWM` : "Off (0 PWM)"}</span>
+                      <span className="text-leaf font-bold">
+                        {ledOn ? `${ledIntensity}% PWM` : "Off (0 PWM)"}
+                      </span>
                     </div>
                     <div className="flex h-2.5 overflow-hidden rounded-full bg-secondary">
                       <div
@@ -1112,11 +1162,15 @@ export default function ControlsAndAnalytics({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Hardware PWM:</span>
-                      <span className="font-semibold text-foreground">{ledBrightness > 0 ? `${ledBrightness}/255 PWM` : "0 PWM"}</span>
+                      <span className="font-semibold text-foreground">
+                        {ledBrightness > 0 ? `${ledBrightness}/255 PWM` : "0 PWM"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Misting Valve:</span>
-                      <span className="font-semibold text-leaf">{mistOn ? "Active (Open)" : "Standby (Closed)"}</span>
+                      <span className="font-semibold text-leaf">
+                        {mistOn ? "Active (Open)" : "Standby (Closed)"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1128,10 +1182,8 @@ export default function ControlsAndAnalytics({
               </div>
             </div>
           </div>
-
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
