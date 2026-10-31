@@ -241,14 +241,14 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#ECEAE2] flex items-center justify-center p-3 sm:p-6 md:p-10 font-sans text-neutral-900 antialiased selection:bg-[#123C2A] selection:text-white">
+    <div className="min-h-screen w-full bg-[#ECEAE2] flex items-center justify-center p-2.5 sm:p-6 md:p-10 font-sans text-neutral-900 antialiased selection:bg-[#123C2A] selection:text-white">
       {/* Main Split-Screen Card */}
-      <div className="w-full max-w-[1040px] bg-white rounded-[28px] sm:rounded-[36px] shadow-[0_20px_60px_-15px_rgba(18,60,42,0.18)] border border-[#DED9CB]/70 overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[660px]">
+      <div className="w-full max-w-[1040px] bg-white rounded-2xl sm:rounded-[36px] shadow-[0_20px_60px_-15px_rgba(18,60,42,0.18)] border border-[#DED9CB]/70 overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-0 lg:min-h-[660px]">
         
         {/* ────────────────────────────────────────────────────────────
             LEFT COLUMN: SIGN IN FORM (Clean White)
         ──────────────────────────────────────────────────────────── */}
-        <div className="p-8 sm:p-12 lg:p-14 flex flex-col justify-between bg-white relative">
+        <div className="p-5 sm:p-8 md:p-12 lg:p-14 flex flex-col justify-between bg-white relative">
           <div>
             {/* Brand Logo & Name */}
             <div className="flex items-center gap-2.5">
@@ -264,11 +264,11 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             </div>
 
             {/* Header */}
-            <div className="mt-8 sm:mt-10">
-              <h1 className="text-3xl sm:text-[34px] font-bold tracking-tight text-neutral-900 leading-tight">
+            <div className="mt-6 sm:mt-10">
+              <h1 className="text-2xl sm:text-[34px] font-bold tracking-tight text-neutral-900 leading-tight">
                 {mode === "signin" ? "Sign in" : "Create account"}
               </h1>
-              <p className="text-xs sm:text-sm text-neutral-500 mt-2">
+              <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 sm:mt-2">
                 {mode === "signin" ? (
                   <>
                     Don&apos;t have an account?{" "}
@@ -299,19 +299,19 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <button
               type="button"
               onClick={fillPolyhouseCredentials}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#2F6B4F] hover:text-[#123C2A] bg-[#2F6B4F]/10 hover:bg-[#2F6B4F]/15 px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer"
+              className="mt-3 inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-[#2F6B4F] hover:text-[#123C2A] bg-[#2F6B4F]/10 hover:bg-[#2F6B4F]/15 px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer"
             >
-              <KeyRound className="h-3.5 w-3.5" />
-              <span>Autofill Polyhouse Node #01 Credentials</span>
+              <KeyRound className="h-3.5 w-3.5 shrink-0" />
+              <span>Autofill Node #01 Credentials</span>
             </button>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-4 sm:mt-5 space-y-3.5 sm:space-y-4">
               {/* Email */}
               <div>
                 <label
                   htmlFor="email-input"
-                  className="block text-xs font-semibold text-neutral-600 mb-1.5"
+                  className="block text-xs font-semibold text-neutral-600 mb-1"
                 >
                   E-mail
                 </label>
@@ -322,7 +322,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="polyhouse299@gmail.com"
                   autoComplete="email"
-                  className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
+                  className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 bg-white text-base sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
                 />
               </div>
 
@@ -330,7 +330,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <div>
                 <label
                   htmlFor="password-input"
-                  className="block text-xs font-semibold text-neutral-600 mb-1.5"
+                  className="block text-xs font-semibold text-neutral-600 mb-1"
                 >
                   Password
                 </label>
@@ -342,7 +342,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                    className="w-full h-11 px-3.5 pr-11 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
+                    className="w-full h-11 px-3.5 pr-11 rounded-xl border border-neutral-200 bg-white text-base sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#123C2A]/20 focus:border-[#123C2A] transition-all"
                   />
                   <button
                     type="button"
@@ -473,9 +473,9 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         {/* ────────────────────────────────────────────────────────────
-            RIGHT COLUMN: DARK GREEN FEATURE HERO (#123C2A)
+            RIGHT COLUMN: DARK GREEN FEATURE HERO (Desktop only)
         ──────────────────────────────────────────────────────────── */}
-        <div className="p-8 sm:p-12 lg:p-14 bg-[#123C2A] text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="hidden lg:flex p-8 sm:p-12 lg:p-14 bg-[#123C2A] text-white flex-col justify-between relative overflow-hidden">
           {/* Subtle Ambient Radial Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle,rgba(47,107,79,0.45)_0%,transparent_70%)] pointer-events-none -mr-20 -mt-20" />
           <div className="absolute bottom-0 left-0 w-72 h-72 bg-[radial-gradient(circle,rgba(27,77,54,0.35)_0%,transparent_70%)] pointer-events-none -ml-20 -mb-20" />

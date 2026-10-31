@@ -336,7 +336,7 @@ export default function ControlsAndAnalytics({
               </div>
 
               {/* Operating Mode Selector */}
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/60 p-1 self-start sm:self-auto">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-2 rounded-xl border border-border bg-secondary/60 p-1 self-start sm:self-auto">
                 <span className="px-2.5 text-xs font-semibold text-muted-foreground">
                   Operating Mode:
                 </span>
@@ -639,24 +639,24 @@ export default function ControlsAndAnalytics({
                 <Progress value={dliPct} className="h-2.5 bg-secondary my-3" />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+              <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Solar Share
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{solarShare}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{solarShare}%</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    LED Hours Today
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    LED Hours
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{ledHoursToday.toFixed(1)}h</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{ledHoursToday.toFixed(1)}h</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Saved Energy
                   </p>
-                  <p className="text-base font-bold text-leaf mt-0.5">{energySavedPct}%</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{energySavedPct}%</p>
                 </div>
               </div>
             </div>
@@ -779,24 +779,24 @@ export default function ControlsAndAnalytics({
                 />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+              <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Ambient Temp
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{temp}°C</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{temp}°C</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    Relative Humidity
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Humidity
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{humidity}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{humidity}%</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
                     Canopy Light
                   </p>
-                  <p className="text-base font-bold text-leaf mt-0.5">{(lux / 1000).toFixed(1)}k lux</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{(lux / 1000).toFixed(1)}k lux</p>
                 </div>
               </div>
             </div>
@@ -914,24 +914,24 @@ export default function ControlsAndAnalytics({
                 <Progress value={soilMoisture} className="h-2.5 bg-secondary my-3" />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    Zone 1 (GPIO 14)
+              <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Zone 1 (S1)
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{zone1Moisture}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{zone1Moisture}%</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    Zone 2 (GPIO 32)
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Zone 2 (S2)
                   </p>
-                  <p className="text-base font-bold text-foreground mt-0.5">{zone2Moisture}%</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground mt-0.5">{zone2Moisture}%</p>
                 </div>
-                <div className="rounded-xl border border-border/60 bg-secondary/40 p-3 text-center">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    Uniformity Delta
+                <div className="rounded-xl border border-border/60 bg-secondary/40 p-2 sm:p-3 text-center">
+                  <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider text-muted-foreground truncate">
+                    Delta
                   </p>
-                  <p className="text-base font-bold text-leaf mt-0.5">{zoneDifference}%</p>
+                  <p className="text-sm sm:text-base font-bold text-leaf mt-0.5">{zoneDifference}%</p>
                 </div>
               </div>
             </div>

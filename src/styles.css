@@ -156,6 +156,10 @@
     color: #F5F3EA;
   }
 
+  .safe-area-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
   @keyframes pulse-ring {
     0% { box-shadow: 0 0 0 0 rgba(47, 107, 79, 0.45); }
     70% { box-shadow: 0 0 0 8px rgba(47, 107, 79, 0); }

@@ -454,16 +454,16 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
       ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden relative z-10">
         {/* TOP HEADER */}
-        <header className="shrink-0 z-20 flex h-14 md:h-16 w-full items-center justify-between border-b border-border bg-card/90 px-4 md:px-8 backdrop-blur-md">
+        <header className="shrink-0 z-20 flex h-14 md:h-16 w-full items-center justify-between border-b border-border bg-card/90 px-3 sm:px-4 md:px-8 backdrop-blur-md">
           {/* Left Title & Mobile Hamburger */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             {/* Mobile Sheet Trigger */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <button
                   type="button"
                   aria-label="Open navigation menu"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary md:hidden transition-colors"
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary md:hidden transition-colors"
                 >
                   <Menu className="h-5 w-5 text-foreground" />
                 </button>
@@ -524,17 +524,17 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
               </SheetContent>
             </Sheet>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hidden sm:inline">
                   QuantumGrow
                 </span>
-                <span className="text-muted-foreground text-xs">/</span>
-                <span className="text-xs font-semibold text-leaf">{activeSection}</span>
+                <span className="text-muted-foreground text-xs hidden sm:inline">/</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-leaf truncate">{activeSection}</span>
               </div>
-              <h2 className="text-lg md:text-xl font-bold tracking-tight text-foreground">
+              <h2 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-foreground truncate max-w-[130px] sm:max-w-xs md:max-w-none">
                 {activeSection === "Dashboard"
-                  ? "Real-Time Telemetry & Industrial Control"
+                  ? "Real-Time Telemetry & Controls"
                   : activeSection === "Controls & Analytics"
                   ? "Controls & Analytics"
                   : `${activeSection} Management`}
@@ -622,7 +622,7 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
         {/* ────────────────────────────────────────────────────────────
             MAIN CONTENT WRAPPER
         ──────────────────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto p-3.5 md:p-6 space-y-4 max-w-7xl w-full mx-auto">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-24 md:pb-6 space-y-3.5 sm:space-y-4 max-w-7xl w-full mx-auto">
           {/* ────────────────────────────────────────────────────────
               SECTION 1 — SYSTEM OVERVIEW CARD (Always prominent)
           ──────────────────────────────────────────────────────── */}
@@ -671,82 +671,82 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
                   </div>
                 </div>
 
-              {/* 6-Metric Primary Telemetry Grid (2 Rows x 3 Columns) */}
-              <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {/* 6-Metric Primary Telemetry Grid (2 Rows x 3 Columns on desktop, 2-cols on mobile) */}
+              <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                 {/* 1. Ambient Temperature */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Thermometer className="h-4.5 w-4.5 text-warning" /> Temperature
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Thermometer className="h-4 w-4 text-warning shrink-0" /> Temperature
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {temp} <span className="text-xs font-semibold text-muted-foreground">°C</span>
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
                     Target: <span className="font-semibold text-foreground/90">{profile.tempDayMin}–{profile.tempDayMax}°C</span>
                   </p>
                 </div>
 
                 {/* 2. Relative Humidity */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Droplets className="h-4.5 w-4.5 text-water" /> Humidity
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Droplets className="h-4 w-4 text-water shrink-0" /> Humidity
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {humidity} <span className="text-xs font-semibold text-muted-foreground">%</span>
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
                     Target: <span className="font-semibold text-foreground/90">{profile.humidityMin}–{profile.humidityMax}%</span>
                   </p>
                 </div>
 
                 {/* 3. Soil Moisture */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Sprout className="h-4.5 w-4.5 text-leaf" /> Soil Moisture
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Sprout className="h-4 w-4 text-leaf shrink-0" /> Soil Moisture
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {soilMoisture} <span className="text-xs font-semibold text-muted-foreground">%</span>
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
                     Probes: <span className="font-semibold text-foreground/90">S1 ({soil1}) · S2 ({soil2})</span>
                   </p>
                 </div>
 
                 {/* 4. Canopy Light */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Sun className="h-4.5 w-4.5 text-sun" /> Canopy Light
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Sun className="h-4 w-4 text-sun shrink-0" /> Canopy Light
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {(lux / 1000).toFixed(1)}k <span className="text-xs font-semibold text-muted-foreground">lux</span>
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
                     Target: <span className="font-semibold text-foreground/90">{profile.luxMin / 1000}k–{profile.luxMax / 1000}k</span>
                   </p>
                 </div>
 
                 {/* 5. Air Quality & Gas (MQ-2) */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Flame className="h-4.5 w-4.5 text-primary" /> Air / MQ-2
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Flame className="h-4 w-4 text-primary shrink-0" /> Air / MQ-2
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {mq2} <span className="text-xs font-semibold text-muted-foreground">ADC</span>
                   </p>
-                  <p className="mt-0.5 text-xs text-leaf font-semibold">
+                  <p className="mt-0.5 text-[11px] sm:text-xs text-leaf font-semibold truncate">
                     Status: Normal (Safe)
                   </p>
                 </div>
 
                 {/* 6. Solar Panel Voltage */}
-                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2.5 px-3.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-bold text-foreground/80">
-                    <Zap className="h-4.5 w-4.5 text-sun" /> Solar Panel Voltage
+                <div className="rounded-xl border border-border/70 bg-white shadow-xs hover:shadow-sm transition-all py-2 sm:py-2.5 px-2.5 sm:px-3.5">
+                  <span className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-foreground/80 truncate">
+                    <Zap className="h-4 w-4 text-sun shrink-0" /> Solar Voltage
                   </span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
+                  <p className="mt-0.5 text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
                     {solarVoltage} <span className="text-xs font-semibold text-muted-foreground">V</span>
                   </p>
-                  <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                  <p className="mt-0.5 text-[11px] sm:text-xs font-medium text-muted-foreground truncate">
                     Target: <span className="font-semibold text-foreground/90">14.0–19.5V (Active PV)</span>
                   </p>
                 </div>
@@ -1399,7 +1399,7 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
                 Firebase Realtime Database Endpoint
               </p>
               <p className="font-mono text-[11px] text-primary truncate">
-                smart-polyhouse-694e6-default-rtdb.asia-southeast1.firebasedatabase.app
+                smart-polyhouse-dc97b-default-rtdb.asia-southeast1.firebasedatabase.app
               </p>
             </div>
 
@@ -1430,6 +1430,47 @@ export default function Dashboard({ onLogout }: DashboardProps = {}) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ────────────────────────────────────────────────────────────
+          3. MOBILE BOTTOM NAVIGATION DOCK (Touch-optimized for phones)
+      ──────────────────────────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-lg border-t border-border px-2 py-1.5 flex items-center justify-around shadow-[0_-4px_25px_rgba(0,0,0,0.08)]">
+        {[
+          { label: "Dashboard" as NavSection, display: "Live", icon: LayoutDashboard },
+          { label: "Environment" as NavSection, display: "Climate", icon: ThermometerSun },
+          { label: "Controls & Analytics" as NavSection, display: "Controls", icon: SlidersHorizontal },
+          { label: "Plant Growth" as NavSection, display: "Crops", icon: Sprout },
+          { label: "NourishIQ" as NavSection, display: "AI Doctor", icon: FlaskConical },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeSection === tab.label;
+          return (
+            <button
+              key={tab.label}
+              type="button"
+              onClick={() => handleNavClick(tab.label)}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
+                isActive
+                  ? "text-leaf font-bold scale-105"
+                  : "text-muted-foreground hover:text-foreground font-medium"
+              }`}
+            >
+              <div
+                className={`flex items-center justify-center h-8 w-8 rounded-lg transition-colors ${
+                  isActive
+                    ? "bg-leaf text-white shadow-xs"
+                    : "hover:bg-secondary"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] mt-0.5 tracking-tight leading-none">
+                {tab.display}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
